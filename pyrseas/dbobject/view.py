@@ -226,5 +226,6 @@ class MaterializedView(View):
         defn = newdefn or self.definition
         if defn[-1:] == ';':
             defn = defn[:-1]
-        return ["CREATE %s %s AS\n   %s" % (
-                self.objtype, self.qualname(), defn)]
+
+        return ["CREATE%s %s %s AS\n   %s" % (
+                newdefn and " OR REPLACE" or '', self.objtype, self.qualname(), defn)]
