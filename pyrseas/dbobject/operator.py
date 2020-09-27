@@ -14,14 +14,27 @@ from . import split_schema_obj, split_func_args
 class Operator(DbSchemaObject):
     """An operator"""
 
-    keylist = ['schema', 'name', 'leftarg', 'rightarg']
+    keylist = ["schema", "name", "leftarg", "rightarg"]
     single_extern_file = True
-    catalog = 'pg_operator'
+    catalog = "pg_operator"
 
-    def __init__(self, name, schema, description, owner, procedure,
-                 leftarg=None, rightarg=None, commutator=None, negator=None,
-                 restrict=None, join=None, hashes=False, merges=False,
-                 oid=None):
+    def __init__(
+        self,
+        name,
+        schema,
+        description,
+        owner,
+        procedure,
+        leftarg=None,
+        rightarg=None,
+        commutator=None,
+        negator=None,
+        restrict=None,
+        join=None,
+        hashes=False,
+        merges=False,
+        oid=None,
+    ):
         """Initialize the operator
 
         :param name: operator name (from oprname)
@@ -41,12 +54,12 @@ class Operator(DbSchemaObject):
         super(Operator, self).__init__(name, schema, description)
         self._init_own_privs(owner, [])
         self.procedure = procedure
-        self.leftarg = leftarg if leftarg != '-' else None
-        self.rightarg = rightarg if rightarg != '-' else None
-        self.commutator = commutator if commutator != '0' else None
-        self.negator = negator if negator != '0' else None
-        self.restrict = restrict if restrict != '-' else None
-        self.join = join if join != '-' else None
+        self.leftarg = leftarg if leftarg != "-" else None
+        self.rightarg = rightarg if rightarg != "-" else None
+        self.commutator = commutator if commutator != "0" else None
+        self.negator = negator if negator != "0" else None
+        self.restrict = restrict if restrict != "-" else None
+        self.join = join if join != "-" else None
         self.hashes = hashes
         self.merges = merges
         self.oid = oid
@@ -81,12 +94,20 @@ class Operator(DbSchemaObject):
         :return: operator instance
         """
         obj = Operator(
-            name, schema.name, inobj.pop('description', None),
-            inobj.pop('owner', None), inobj.pop('procedure', None),
-            leftarg, rightarg, inobj.pop('commutator', None),
-            inobj.pop('negator', None), inobj.pop('restrict', None),
-            inobj.pop('join', None), inobj.pop('hashes', False),
-            inobj.pop('merges', None))
+            name,
+            schema.name,
+            inobj.pop("description", None),
+            inobj.pop("owner", None),
+            inobj.pop("procedure", None),
+            leftarg,
+            rightarg,
+            inobj.pop("commutator", None),
+            inobj.pop("negator", None),
+            inobj.pop("restrict", None),
+            inobj.pop("join", None),
+            inobj.pop("hashes", False),
+            inobj.pop("merges", None),
+        )
         obj.set_oldname(inobj)
         return obj
 
@@ -95,10 +116,12 @@ class Operator(DbSchemaObject):
 
         :return: string
         """
-        return '%s %s(%s, %s)' % (
-            self.objtype.lower(), self.name,
-            'NONE' if self.leftarg is None else self.leftarg,
-            'NONE' if self.rightarg is None else self.rightarg)
+        return "%s %s(%s, %s)" % (
+            self.objtype.lower(),
+            self.name,
+            "NONE" if self.leftarg is None else self.leftarg,
+            "NONE" if self.rightarg is None else self.rightarg,
+        )
 
     def qualname(self):
         """Return the schema-qualified name of the operator
@@ -107,8 +130,11 @@ class Operator(DbSchemaObject):
 
         No qualification is used if the schema is 'public'.
         """
-        return self.schema == 'public' and self.name \
+        return (
+            self.schema == "public"
+            and self.name
             or "%s.%s" % (quote_id(self.schema), self.name)
+        )
 
     def identifier(self):
         """Return a full identifier for an operator object
@@ -125,10 +151,10 @@ class Operator(DbSchemaObject):
         :return: dictionary
         """
         dct = super(Operator, self).to_map(db, no_owner)
-        for attr in ['commutator', 'join', 'negator', 'restrict']:
+        for attr in ["commutator", "join", "negator", "restrict"]:
             if dct[attr] is None:
                 dct.pop(attr)
-        for attr in ['hashes', 'merges']:
+        for attr in ["hashes", "merges"]:
             if dct[attr] is False:
                 dct.pop(attr)
         return dct
@@ -157,9 +183,15 @@ class Operator(DbSchemaObject):
             opt_clauses.append("HASHES")
         if self.merges:
             opt_clauses.append("MERGES")
-        return ["CREATE OPERATOR %s (\n    PROCEDURE = %s%s%s)" % (
-                self.qualname(), self.procedure,
-                ',\n    ' if opt_clauses else '', ',\n    '.join(opt_clauses))]
+        return [
+            "CREATE OPERATOR %s (\n    PROCEDURE = %s%s%s)"
+            % (
+                self.qualname(),
+                self.procedure,
+                ",\n    " if opt_clauses else "",
+                ",\n    ".join(opt_clauses),
+            )
+        ]
 
     def get_implied_deps(self, db):
         deps = super(Operator, self).get_implied_deps(db)
@@ -178,8 +210,9 @@ class Operator(DbSchemaObject):
         # The function instead we expect it exists
         # TODO: another ugly hack to locate the object
         fschema, fname = split_schema_obj(self.procedure, self.schema)
-        fargs = ', '.join(t for t in [self.leftarg, self.rightarg]
-                          if t is not None)
+        fargs = ", ".join(
+            t for t in [self.leftarg, self.rightarg] if t is not None
+        )
         if (fschema, fname, fargs) in db.functions:
             func = db.functions[fschema, fname, fargs]
             deps.add(func)
@@ -187,8 +220,9 @@ class Operator(DbSchemaObject):
         # This helper function may be a builtin
         if self.restrict is not None:
             fschema, fname = split_schema_obj(self.restrict)
-            func = db.functions.get((fschema, fname,
-                                    "internal, oid, internal, integer"))
+            func = db.functions.get(
+                (fschema, fname, "internal, oid, internal, integer")
+            )
             if func:
                 deps.add(func)
 
@@ -218,19 +252,20 @@ class OperatorDict(DbObjectDict):
         :param inopers: YAML map defining the operators
         """
         for key in inopers:
-            (objtype, spc, opr) = key.partition(' ')
-            if spc != ' ' or objtype != 'operator':
+            (objtype, spc, opr) = key.partition(" ")
+            if spc != " " or objtype != "operator":
                 raise KeyError("Unrecognized object type: %s" % key)
-            paren = opr.find('(')
-            if paren == -1 or opr[-1:] != ')':
+            paren = opr.find("(")
+            if paren == -1 or opr[-1:] != ")":
                 raise KeyError("Invalid operator signature: %s" % opr)
-            (leftarg, rightarg) = opr[paren + 1:-1].split(',')
-            if leftarg == 'NONE':
+            (leftarg, rightarg) = opr[paren + 1 : -1].split(",")
+            if leftarg == "NONE":
                 leftarg = None
             rightarg = rightarg.lstrip()
-            if rightarg == 'NONE':
+            if rightarg == "NONE":
                 rightarg = None
             inobj = inopers[key]
             opr = opr[:paren]
             self[(schema.name, opr, leftarg, rightarg)] = Operator.from_map(
-                opr, schema, leftarg, rightarg, inobj)
+                opr, schema, leftarg, rightarg, inobj
+            )

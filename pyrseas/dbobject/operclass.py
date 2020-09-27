@@ -13,12 +13,23 @@ from . import commentable, ownable, split_func_args, split_schema_obj
 class OperatorClass(DbSchemaObject):
     """An operator class"""
 
-    keylist = ['schema', 'name', 'index_method']
+    keylist = ["schema", "name", "index_method"]
     single_extern_file = True
-    catalog = 'pg_opclass'
+    catalog = "pg_opclass"
 
-    def __init__(self, name, schema, index_method, description, owner,
-                 family, type, default=None, storage=None, oid=None):
+    def __init__(
+        self,
+        name,
+        schema,
+        index_method,
+        description,
+        owner,
+        family,
+        type,
+        default=None,
+        storage=None,
+        oid=None,
+    ):
         """Initialize the operator class
 
         :param name: operator name (from opcname)
@@ -38,7 +49,7 @@ class OperatorClass(DbSchemaObject):
         (sch, typ) = split_schema_obj(type)
         self.type = typ if self.schema == sch else type
         self.default = default
-        self.storage = storage if storage != '-' else None
+        self.storage = storage if storage != "-" else None
         self.operators = {}
         self.functions = {}
         self.oid = oid
@@ -106,14 +117,20 @@ class OperatorClass(DbSchemaObject):
         :return: operator class instance
         """
         obj = OperatorClass(
-            name, schema.name, index_method, inobj.pop('description', None),
-            inobj.pop('owner', None), inobj.pop('family', None),
-            inobj.pop('type', None), inobj.pop('default', False),
-            inobj.pop('storage', None))
-        if 'operators' in inobj:
-            obj.operators = inobj.get('operators')
-        if 'functions' in inobj:
-            obj.functions = inobj.get('functions')
+            name,
+            schema.name,
+            index_method,
+            inobj.pop("description", None),
+            inobj.pop("owner", None),
+            inobj.pop("family", None),
+            inobj.pop("type", None),
+            inobj.pop("default", False),
+            inobj.pop("storage", None),
+        )
+        if "operators" in inobj:
+            obj.operators = inobj.get("operators")
+        if "functions" in inobj:
+            obj.functions = inobj.get("functions")
         obj.set_oldname(inobj)
         return obj
 
@@ -126,8 +143,11 @@ class OperatorClass(DbSchemaObject):
 
         :return: string
         """
-        return '%s %s using %s' % (self.objtype.lower(), self.name,
-                                   self.index_method)
+        return "%s %s using %s" % (
+            self.objtype.lower(),
+            self.name,
+            self.index_method,
+        )
 
     def identifier(self):
         """Return a full identifier for an operator class
@@ -143,11 +163,11 @@ class OperatorClass(DbSchemaObject):
         """
         dct = super(OperatorClass, self).to_map(db, no_owner)
         if self.storage is None:
-            del dct['storage']
+            del dct["storage"]
         if not self.default:
-            del dct['default']
+            del dct["default"]
         if self.name == self.family:
-            del dct['family']
+            del dct["family"]
         return dct
 
     @commentable
@@ -157,7 +177,7 @@ class OperatorClass(DbSchemaObject):
 
         :return: SQL statements
         """
-        dflt = ''
+        dflt = ""
         if self.default:
             dflt = "DEFAULT "
         clauses = []
@@ -167,11 +187,17 @@ class OperatorClass(DbSchemaObject):
             clauses.append("FUNCTION %d %s" % (supp, func))
         if self.storage is not None:
             clauses.append("STORAGE %s" % self.storage)
-        return ["CREATE OPERATOR CLASS %s\n    %sFOR TYPE %s USING %s "
-                "AS\n    %s" % (
-                    self.qualname(), dflt,
-                    self.qualname(self.schema, self.type), self.index_method,
-                    ',\n    ' .join(clauses))]
+        return [
+            "CREATE OPERATOR CLASS %s\n    %sFOR TYPE %s USING %s "
+            "AS\n    %s"
+            % (
+                self.qualname(),
+                dflt,
+                self.qualname(self.schema, self.type),
+                self.index_method,
+                ",\n    ".join(clauses),
+            )
+        ]
 
     def get_implied_deps(self, db):
         deps = super(OperatorClass, self).get_implied_deps(db)
@@ -230,11 +256,12 @@ class OperatorClassDict(DbObjectDict):
         :param inopcls: YAML map defining the operator classes
         """
         for key in inopcls:
-            if not key.startswith('operator class ') or ' using ' not in key:
+            if not key.startswith("operator class ") or " using " not in key:
                 raise KeyError("Unrecognized object type: %s" % key)
-            pos = key.rfind(' using ')
+            pos = key.rfind(" using ")
             opc = key[15:pos]  # 15 = len('operator class ')
-            idx = key[pos + 7:]  # 7 = len(' using ')
+            idx = key[pos + 7 :]  # 7 = len(' using ')
             inobj = inopcls[key]
             self[(schema.name, opc, idx)] = OperatorClass.from_map(
-                opc, schema, idx, inobj)
+                opc, schema, idx, inobj
+            )

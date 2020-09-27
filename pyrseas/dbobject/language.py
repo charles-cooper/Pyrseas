@@ -17,13 +17,19 @@ from .function import Function
 class Language(DbObject):
     """A procedural language definition"""
 
-    keylist = ['name']
+    keylist = ["name"]
     single_extern_file = True
-    catalog = 'pg_language'
+    catalog = "pg_language"
 
-    def __init__(self, name, description=None, owner=None, privileges=[],
-                 trusted=False,
-                 oid=None):
+    def __init__(
+        self,
+        name,
+        description=None,
+        owner=None,
+        privileges=[],
+        trusted=False,
+        oid=None,
+    ):
         """Initialize the language
 
         :param name: language name (from lanname)
@@ -59,11 +65,15 @@ class Language(DbObject):
         :return: Language instance
         """
         obj = Language(
-            name, inobj.pop('description', None), inobj.pop('owner', None),
-            inobj.pop('privileges', []), inobj.pop('trusted', False))
+            name,
+            inobj.pop("description", None),
+            inobj.pop("owner", None),
+            inobj.pop("privileges", []),
+            inobj.pop("trusted", False),
+        )
         obj.fix_privileges()
-        if '_ext' in inobj:
-            obj._ext = inobj['_ext']
+        if "_ext" in inobj:
+            obj._ext = inobj["_ext"]
         obj.set_oldname(inobj)
         return obj
 
@@ -73,11 +83,11 @@ class Language(DbObject):
         :param no_owner: exclude language owner information
         :return: dictionary
         """
-        if hasattr(self, '_ext'):
+        if hasattr(self, "_ext"):
             return None
         dct = super(Language, self).to_map(db, no_owner, no_privs)
-        if 'functions' in dct:
-            del dct['functions']
+        if "functions" in dct:
+            del dct["functions"]
         return dct
 
     def create(self, dbversion=None):
@@ -86,7 +96,7 @@ class Language(DbObject):
         :return: SQL statements
         """
         stmts = []
-        if not hasattr(self, '_ext'):
+        if not hasattr(self, "_ext"):
             stmts.append("CREATE LANGUAGE %s" % quote_id(self.name))
             if self.owner is not None:
                 stmts.append(self.alter_owner())
@@ -98,7 +108,7 @@ class Language(DbObject):
         # TODO: this should not be special-cased
         # remove it after merging with the master, where plpgsql should be
         # treated normally
-        if self.name != 'plpgsql':
+        if self.name != "plpgsql":
             return super(Language, self).drop()
         else:
             return []
@@ -115,8 +125,8 @@ class LanguageDict(DbObjectDict):
         :param inmap: the input YAML map defining the languages
         """
         for key in inmap:
-            (objtype, spc, lng) = key.partition(' ')
-            if spc != ' ' or objtype != 'language':
+            (objtype, spc, lng) = key.partition(" ")
+            if spc != " " or objtype != "language":
                 raise KeyError("Unrecognized object type: %s" % key)
             inobj = inmap[key]
             self[lng] = Language.from_map(lng, inobj)
@@ -133,7 +143,8 @@ class LanguageDict(DbObjectDict):
         for (sch, fnc, arg) in dbfunctions:
             func = dbfunctions[(sch, fnc, arg)]
             if not isinstance(func, Function) or (
-                    func.language in ['sql', 'c', 'internal']):
+                func.language in ["sql", "c", "internal"]
+            ):
                 continue
             try:
                 language = self[(func.language)]
@@ -141,6 +152,6 @@ class LanguageDict(DbObjectDict):
                 if func.language in langs:
                     continue
                 raise exc
-            if not hasattr(language, 'functions'):
+            if not hasattr(language, "functions"):
                 language.functions = {}
             language.functions.update({fnc: func})

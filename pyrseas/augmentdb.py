@@ -40,13 +40,15 @@ class AugmentDatabase(Database):
             """
             self.schemas = AugSchemaDict()
             self.tables = AugClassDict()
-            self.columns = CfgColumnDict(cfg_section(config, 'columns'))
+            self.columns = CfgColumnDict(cfg_section(config, "columns"))
             self.funcsrcs = CfgFunctionSourceDict(
-                cfg_section(config, 'function_templates'))
-            self.functions = CfgFunctionDict(cfg_section(config, 'functions'))
-            self.triggers = CfgTriggerDict(cfg_section(config, 'triggers'))
+                cfg_section(config, "function_templates")
+            )
+            self.functions = CfgFunctionDict(cfg_section(config, "functions"))
+            self.triggers = CfgTriggerDict(cfg_section(config, "triggers"))
             self.auditcols = CfgAuditColumnDict(
-                cfg_section(config, 'audit_columns'))
+                cfg_section(config, "audit_columns")
+            )
 
         def _link_refs(self):
             """Link related objects"""
@@ -68,7 +70,7 @@ class AugmentDatabase(Database):
                 self.schemas[schema].add_func(function)
             elif schema in self.current.schemas:
                 sch = self.current.schemas[schema]
-                if not hasattr(sch, 'functions'):
+                if not hasattr(sch, "functions"):
                     sch.functions = {}
                 if function.name not in sch.functions:
                     sch.functions.update({function.name: function})
@@ -91,12 +93,12 @@ class AugmentDatabase(Database):
         in the dictionary are then linked to related objects, e.g.,
         tables are linked to the schemas they belong.
         """
-        self.adb = self.AugDicts(cfg_section(self.config, 'augmenter'))
+        self.adb = self.AugDicts(cfg_section(self.config, "augmenter"))
         aug_schemas = {}
         for key in aug_map:
-            if key == 'augmenter':
+            if key == "augmenter":
                 self._from_cfgmap(aug_map[key])
-            elif key.startswith('schema '):
+            elif key.startswith("schema "):
                 aug_schemas.update({key: aug_map[key]})
             else:
                 raise KeyError("Expected typed object, found '%s'" % key)
@@ -114,15 +116,15 @@ class AugmentDatabase(Database):
         configuration map.
         """
         for key in cfg_map:
-            if key == 'columns':
+            if key == "columns":
                 self.adb.columns.from_map(cfg_map[key])
-            elif key in ['function_templates', 'function_segments']:
+            elif key in ["function_templates", "function_segments"]:
                 self.adb.funcsrcs.from_map(cfg_map[key])
-            elif key == 'functions':
+            elif key == "functions":
                 self.adb.functions.from_map(cfg_map[key])
-            elif key == 'triggers':
+            elif key == "triggers":
                 self.adb.triggers.from_map(cfg_map[key])
-            elif key == 'audit_columns':
+            elif key == "audit_columns":
                 self.adb.auditcols.from_map(cfg_map[key])
             else:
                 raise KeyError("Expected typed object, found '%s'" % key)

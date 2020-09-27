@@ -11,7 +11,7 @@
 class DbAugment(object):
     "A database augmentation object"
 
-    keylist = ['name']
+    keylist = ["name"]
     """List of attributes that uniquely identify the object"""
 
     def __init__(self, **attrs):

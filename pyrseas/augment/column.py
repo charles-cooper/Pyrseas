@@ -13,7 +13,7 @@ from pyrseas.dbobject.column import Column
 class CfgColumn(DbAugment):
     "A configuration column definition"
 
-    keylist = ['name']
+    keylist = ["name"]
 
     def apply(self, table):
         """Add columns to the table passed in.
@@ -24,16 +24,17 @@ class CfgColumn(DbAugment):
             for col in table.columns:
                 if col.name == self.name:
                     col.type = self.type
-                    if hasattr(self, 'not_null'):
+                    if hasattr(self, "not_null"):
                         col.not_null = self.not_null
-                    if hasattr(self, 'default'):
+                    if hasattr(self, "default"):
                         col.default = self.default
         else:
             dct = self.__dict__.copy()
-            dct.pop('name')
-            dct.pop('type')
-            newcol = Column(self.name, table.schema, table.name, 0, self.type,
-                            **dct)
+            dct.pop("name")
+            dct.pop("type")
+            newcol = Column(
+                self.name, table.schema, table.name, 0, self.type, **dct
+            )
             newcol._table = table
             table.columns.append(newcol)
 
@@ -46,10 +47,10 @@ class CfgColumnDict(DbAugmentDict):
     def __init__(self, config):
         self.col_trans_tbl = []
         for col in config:
-            if not 'name' in config[col]:
-                config[col]['name'] = col
+            if not "name" in config[col]:
+                config[col]["name"] = col
             self[col] = CfgColumn(**config[col])
-            self.col_trans_tbl.append(('{{%s}}' % col, self[col].name))
+            self.col_trans_tbl.append(("{{%s}}" % col, self[col].name))
 
     def from_map(self, incols):
         """Initialize the dictionary of columns by converting the input dict
@@ -64,8 +65,9 @@ class CfgColumnDict(DbAugmentDict):
                 self[col] = ccol = CfgColumn(name=col)
             for attr, val in list(incols[col].items()):
                 setattr(ccol, attr, val)
-                if attr == 'name':
+                if attr == "name":
                     renames = True
         if renames:
-            self.col_trans_tbl = [('{{%s}}' % col, self[col].name)
-                                  for col in self]
+            self.col_trans_tbl = [
+                ("{{%s}}" % col, self[col].name) for col in self
+            ]

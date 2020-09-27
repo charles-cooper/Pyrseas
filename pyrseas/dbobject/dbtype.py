@@ -12,15 +12,15 @@ from . import DbObjectDict, DbSchemaObject
 from . import split_schema_obj, commentable, ownable
 from .constraint import CheckConstraint
 
-ALIGNMENT_TYPES = {'c': 'char', 's': 'int2', 'i': 'int4', 'd': 'double'}
-STORAGE_TYPES = {'p': 'plain', 'e': 'external', 'm': 'main', 'x': 'extended'}
+ALIGNMENT_TYPES = {"c": "char", "s": "int2", "i": "int4", "d": "double"}
+STORAGE_TYPES = {"p": "plain", "e": "external", "m": "main", "x": "extended"}
 
 
 class DbType(DbSchemaObject):
     """A user-defined type, such as a composite, domain or enum"""
 
-    keylist = ['schema', 'name']
-    catalog = 'pg_type'
+    keylist = ["schema", "name"]
+    catalog = "pg_type"
 
     def __init__(self, name, schema, description, owner, privileges):
         """Initialize the type
@@ -45,12 +45,28 @@ class DbType(DbSchemaObject):
 class BaseType(DbType):
     """A base type"""
 
-    def __init__(self, name, schema, description, owner, privileges,
-                 input, output, receive=None, send=None, typmod_in=None,
-                 typmod_out=None, analyze=None, internallength=1,
-                 alignment=None, storage=None, delimiter=',',
-                 category=None, preferred=False,
-                 oid=None):
+    def __init__(
+        self,
+        name,
+        schema,
+        description,
+        owner,
+        privileges,
+        input,
+        output,
+        receive=None,
+        send=None,
+        typmod_in=None,
+        typmod_out=None,
+        analyze=None,
+        internallength=1,
+        alignment=None,
+        storage=None,
+        delimiter=",",
+        category=None,
+        preferred=False,
+        oid=None,
+    ):
         """Initialize the base type
 
         :param name-privileges: see DbType.__init__ params
@@ -68,15 +84,16 @@ class BaseType(DbType):
         :param category: PG data type classification (see typcategory)
         :param preferred: preferred cast target? (see typispreferred)
         """
-        super(BaseType, self).__init__(name, schema, description, owner,
-                                       privileges)
+        super(BaseType, self).__init__(
+            name, schema, description, owner, privileges
+        )
         self.input = self.unqualify(input)
         self.output = self.unqualify(output)
-        self.receive = receive if receive != '-' else None
-        self.send = send if send != '-' else None
-        self.typmod_in = typmod_in if typmod_in != '-' else None
-        self.typmod_out = typmod_out if typmod_out != '-' else None
-        self.analyze = analyze if analyze != '-' else None
+        self.receive = receive if receive != "-" else None
+        self.send = send if send != "-" else None
+        self.typmod_in = typmod_in if typmod_in != "-" else None
+        self.typmod_out = typmod_out if typmod_out != "-" else None
+        self.analyze = analyze if analyze != "-" else None
         self.internallength = internallength
         if alignment is not None and len(alignment) == 1:
             self.alignment = ALIGNMENT_TYPES[alignment]
@@ -128,15 +145,25 @@ class BaseType(DbType):
         :return: BaseType instance
         """
         obj = BaseType(
-            name, schema.name, inobj.pop('description', None),
-            inobj.pop('owner', None), inobj.pop('privileges', []),
-            inobj.pop('input', None), inobj.pop('output', None),
-            inobj.pop('receive', None), inobj.pop('send', None),
-            inobj.pop('typmod_in', None), inobj.pop('typmod_out', None),
-            inobj.pop('analyze', None), inobj.pop('internallength', 1),
-            inobj.pop('alignment', None), inobj.pop('storage', None),
-            inobj.pop('delimiter', ','), inobj.pop('category', None),
-            inobj.pop('preferred', False))
+            name,
+            schema.name,
+            inobj.pop("description", None),
+            inobj.pop("owner", None),
+            inobj.pop("privileges", []),
+            inobj.pop("input", None),
+            inobj.pop("output", None),
+            inobj.pop("receive", None),
+            inobj.pop("send", None),
+            inobj.pop("typmod_in", None),
+            inobj.pop("typmod_out", None),
+            inobj.pop("analyze", None),
+            inobj.pop("internallength", 1),
+            inobj.pop("alignment", None),
+            inobj.pop("storage", None),
+            inobj.pop("delimiter", ","),
+            inobj.pop("category", None),
+            inobj.pop("preferred", False),
+        )
         obj.fix_privileges()
         obj.set_oldname(inobj)
         return obj
@@ -148,16 +175,24 @@ class BaseType(DbType):
         :return: dictionary
         """
         dct = super(BaseType, self).to_map(db, no_owner, no_privs)
-        for attr in ('receive', 'send', 'typmod_in', 'typmod_out', 'analyze',
-                     'alignment', 'storage', 'category'):
+        for attr in (
+            "receive",
+            "send",
+            "typmod_in",
+            "typmod_out",
+            "analyze",
+            "alignment",
+            "storage",
+            "category",
+        ):
             if getattr(self, attr) is None:
                 dct.pop(attr)
         if self.internallength < 0:
-            dct['internallength'] = 'variable'
-        if self.delimiter == ',':
-            dct.pop('delimiter')
+            dct["internallength"] = "variable"
+        if self.delimiter == ",":
+            dct.pop("delimiter")
         if self.preferred is False:
-            dct.pop('preferred')
+            dct.pop("preferred")
         return dct
 
     @commentable
@@ -178,17 +213,23 @@ class BaseType(DbType):
             opt_clauses.append("ALIGNMENT = %s" % self.alignment)
         if self.storage is not None:
             opt_clauses.append("STORAGE = %s" % self.storage)
-        if self.delimiter is not None and self.delimiter != ',':
+        if self.delimiter is not None and self.delimiter != ",":
             opt_clauses.append("DELIMITER = '%s'" % self.delimiter)
         if self.category is not None:
             opt_clauses.append("CATEGORY = '%s'" % self.category)
         if self.preferred:
             opt_clauses.append("PREFERRED = TRUE")
-        stmts.append("CREATE TYPE %s (\n    INPUT = %s,"
-                     "\n    OUTPUT = %s%s%s)" % (
-                         self.qualname(), self.input, self.output,
-                         opt_clauses and ',\n    ' or '',
-                         ',\n    '.join(opt_clauses)))
+        stmts.append(
+            "CREATE TYPE %s (\n    INPUT = %s,"
+            "\n    OUTPUT = %s%s%s)"
+            % (
+                self.qualname(),
+                self.input,
+                self.output,
+                opt_clauses and ",\n    " or "",
+                ",\n    ".join(opt_clauses),
+            )
+        )
         return stmts
 
     def get_implied_deps(self, db):
@@ -201,8 +242,11 @@ class BaseType(DbType):
     def find_defining_funcs(self, dbfuncs):
         rv = []
         for attr, arg in [
-                ('input', 'cstring'), ('output', self.qualname()),
-                ('receive', 'internal'), ('send', self.qualname())]:
+            ("input", "cstring"),
+            ("output", self.qualname()),
+            ("receive", "internal"),
+            ("send", self.qualname()),
+        ]:
             f = getattr(self, attr, None)
             if not f:
                 continue
@@ -225,14 +269,14 @@ class BaseType(DbType):
 class Composite(DbType):
     """A composite type"""
 
-    def __init__(self, name, schema, description, owner, privileges,
-                 oid=None):
+    def __init__(self, name, schema, description, owner, privileges, oid=None):
         """Initialize the composite type
 
         :param name-privileges: see DbType.__init__ params
         """
-        super(Composite, self).__init__(name, schema, description, owner,
-                                        privileges)
+        super(Composite, self).__init__(
+            name, schema, description, owner, privileges
+        )
         self.attributes = []
         self.oid = oid
 
@@ -263,8 +307,12 @@ class Composite(DbType):
         :return: Composite instance
         """
         obj = Composite(
-            name, schema.name, inobj.pop('description', None),
-            inobj.pop('owner', None), inobj.pop('privileges', []))
+            name,
+            schema.name,
+            inobj.pop("description", None),
+            inobj.pop("owner", None),
+            inobj.pop("privileges", []),
+        )
         obj.fix_privileges()
         obj.set_oldname(inobj)
         return obj
@@ -283,7 +331,7 @@ class Composite(DbType):
             att = attr.to_map(db, False)
             if att:
                 attrs.append(att)
-        dct['attributes'] = attrs
+        dct["attributes"] = attrs
         return dct
 
     @commentable
@@ -296,8 +344,9 @@ class Composite(DbType):
         attrs = []
         for att in self.attributes:
             attrs.append("    " + att.add()[0])
-        return ["CREATE TYPE %s AS (\n%s)" % (
-                self.qualname(), ",\n".join(attrs))]
+        return [
+            "CREATE TYPE %s AS (\n%s)" % (self.qualname(), ",\n".join(attrs))
+        ]
 
     def alter(self, intype):
         """Generate SQL to transform an existing composite type
@@ -318,8 +367,8 @@ class Composite(DbType):
         base = "ALTER TYPE %s\n    " % (self.qualname())
         # check input attributes
         for (num, inattr) in enumerate(intype.attributes):
-            if hasattr(inattr, 'oldname'):
-                assert(self.attributes[num].name == inattr.oldname)
+            if hasattr(inattr, "oldname"):
+                assert self.attributes[num].name == inattr.oldname
                 stmts.append(self.attributes[num].rename(inattr.name))
             # check existing attributes
             if num < dbattrs and self.attributes[num].name == inattr.name:
@@ -358,14 +407,14 @@ class Composite(DbType):
 class Enum(DbType):
     "An enumerated type definition"
 
-    def __init__(self, name, schema, description, owner, privileges,
-                 labels, oid=None):
+    def __init__(
+        self, name, schema, description, owner, privileges, labels, oid=None
+    ):
         """Initialize the enumerated type
 
         :param name-privileges: see DbType.__init__ params
         """
-        super(Enum, self).__init__(name, schema, description, owner,
-                                   privileges)
+        super(Enum, self).__init__(name, schema, description, owner, privileges)
         self.labels = labels
         self.oid = oid
 
@@ -399,9 +448,13 @@ class Enum(DbType):
         :return: Enum instance
         """
         obj = Enum(
-            name, schema.name, inobj.pop('description', None),
-            inobj.pop('owner', None), inobj.pop('privileges', []),
-            inobj.pop('labels', []))
+            name,
+            schema.name,
+            inobj.pop("description", None),
+            inobj.pop("owner", None),
+            inobj.pop("privileges", []),
+            inobj.pop("labels", []),
+        )
         obj.fix_privileges()
         obj.set_oldname(inobj)
         return obj
@@ -414,8 +467,10 @@ class Enum(DbType):
         :return: SQL statements
         """
         lbls = ["'%s'" % lbl for lbl in self.labels]
-        return ["CREATE TYPE %s AS ENUM (%s)" % (
-                self.qualname(), ",\n    ".join(lbls))]
+        return [
+            "CREATE TYPE %s AS ENUM (%s)"
+            % (self.qualname(), ",\n    ".join(lbls))
+        ]
 
     def alter(self, intype, no_owner=False):
         """Generate SQL to transform an existing enum type
@@ -438,9 +493,18 @@ class Enum(DbType):
 class Domain(DbType):
     "A domain definition"
 
-    def __init__(self, name, schema, description, owner, privileges,
-                 type, not_null=False, default=None,
-                 oid=None):
+    def __init__(
+        self,
+        name,
+        schema,
+        description,
+        owner,
+        privileges,
+        type,
+        not_null=False,
+        default=None,
+        oid=None,
+    ):
         """Initialize the domain
 
         :param name-privileges: see DbType.__init__ params
@@ -448,8 +512,9 @@ class Domain(DbType):
         :param not_null: not null indicator (see typnotnull)
         :param default: default value (see typdefault)
         """
-        super(Domain, self).__init__(name, schema, description, owner,
-                                     privileges)
+        super(Domain, self).__init__(
+            name, schema, description, owner, privileges
+        )
         self.type = type
         self.not_null = not_null
         self.default = default
@@ -485,10 +550,15 @@ class Domain(DbType):
         :return: Domain instance
         """
         obj = Domain(
-            name, schema.name, inobj.pop('description', None),
-            inobj.pop('owner', None), inobj.pop('privileges', []),
-            inobj.pop('type', None), inobj.pop('not_null', False),
-            inobj.pop('default', None))
+            name,
+            schema.name,
+            inobj.pop("description", None),
+            inobj.pop("owner", None),
+            inobj.pop("privileges", []),
+            inobj.pop("type", None),
+            inobj.pop("not_null", False),
+            inobj.pop("default", None),
+        )
         obj.fix_privileges()
         obj.set_oldname(inobj)
         return obj
@@ -505,15 +575,16 @@ class Domain(DbType):
         """
         dct = super(Domain, self).to_map(db, no_owner, no_privs)
         if self.not_null is False:
-            dct.pop('not_null')
+            dct.pop("not_null")
         if self.default is None:
-            dct.pop('default')
+            dct.pop("default")
         if len(self.check_constraints) > 0:
             for cns in list(self.check_constraints.values()):
-                dct['check_constraints'].update(
-                    self.check_constraints[cns.name].to_map(db, None))
+                dct["check_constraints"].update(
+                    self.check_constraints[cns.name].to_map(db, None)
+                )
         else:
-            dct.pop('check_constraints')
+            dct.pop("check_constraints")
 
         return dct
 
@@ -526,9 +597,9 @@ class Domain(DbType):
         """
         create = "CREATE DOMAIN %s AS %s" % (self.qualname(), self.type)
         if self.not_null:
-            create += ' NOT NULL'
+            create += " NOT NULL"
         if self.default is not None:
-            create += ' DEFAULT ' + str(self.default)
+            create += " DEFAULT " + str(self.default)
         return [create]
 
     def get_implied_deps(self, db):
@@ -543,7 +614,7 @@ class Domain(DbType):
 
             # In my testing database there is a dependency on the output
             # function of the base type. TODO: investigate more.
-            if hasattr(type, 'output'):
+            if hasattr(type, "output"):
                 fschema, fname = split_schema_obj(type.output)
                 func = db.functions[fschema, fname, type.qualname()]
                 deps.add(func)
@@ -554,19 +625,29 @@ class Domain(DbType):
 class Range(DbType):
     "A range type definition"
 
-    def __init__(self, name, schema, description, owner, privileges,
-                 subtype, canonical=None, subtype_diff=None,
-                 oid=None):
+    def __init__(
+        self,
+        name,
+        schema,
+        description,
+        owner,
+        privileges,
+        subtype,
+        canonical=None,
+        subtype_diff=None,
+        oid=None,
+    ):
         """Initialize the range type
 
         :param name-privileges: see DbType.__init__ params
         :param subtype: type of range elements (from rngsubtype)
         """
-        super(Range, self).__init__(name, schema, description, owner,
-                                    privileges)
+        super(Range, self).__init__(
+            name, schema, description, owner, privileges
+        )
         self.subtype = subtype
-        self.canonical = canonical if canonical != '-' else None
-        self.subtype_diff = subtype_diff if subtype_diff != '-' else None
+        self.canonical = canonical if canonical != "-" else None
+        self.subtype_diff = subtype_diff if subtype_diff != "-" else None
         self.oid = oid
 
     @staticmethod
@@ -599,10 +680,15 @@ class Range(DbType):
         :return: Range instance
         """
         obj = Range(
-            name, schema.name, inobj.pop('description', None),
-            inobj.pop('owner', None), inobj.pop('privileges', []),
-            inobj.pop('subtype', None), inobj.pop('canonical', None),
-            inobj.pop('subtype_diff', None))
+            name,
+            schema.name,
+            inobj.pop("description", None),
+            inobj.pop("owner", None),
+            inobj.pop("privileges", []),
+            inobj.pop("subtype", None),
+            inobj.pop("canonical", None),
+            inobj.pop("subtype_diff", None),
+        )
         obj.fix_privileges()
         obj.set_oldname(inobj)
         return obj
@@ -614,7 +700,7 @@ class Range(DbType):
         :return: dictionary
         """
         dct = super(Range, self).to_map(db, no_owner, no_privs)
-        for attr in ('canonical', 'subtype_diff'):
+        for attr in ("canonical", "subtype_diff"):
             if getattr(self, attr) is None:
                 dct.pop(attr)
         return dct
@@ -631,9 +717,15 @@ class Range(DbType):
             clauses.append("CANONICAL = %s" % self.canonical)
         if self.subtype_diff is not None:
             clauses.append("SUBTYPE_DIFF = %s" % self.subtype_diff)
-        return ["CREATE TYPE %s AS RANGE (SUBTYPE = %s%s%s)" % (
-            self.qualname(), self.subtype,
-            clauses and ",\n    " or "", ",\n    ".join(clauses))]
+        return [
+            "CREATE TYPE %s AS RANGE (SUBTYPE = %s%s%s)"
+            % (
+                self.qualname(),
+                self.subtype,
+                clauses and ",\n    " or "",
+                ",\n    ".join(clauses),
+            )
+        ]
 
     def alter(self, intype, no_owner=False):
         """Generate SQL to transform an existing range type
@@ -673,33 +765,38 @@ class TypeDict(DbObjectDict):
         :param newdb: collection of dictionaries defining the database
         """
         for k in inobjs:
-            (objtype, spc, key) = k.partition(' ')
-            if spc != ' ' or objtype not in ['domain', 'type']:
+            (objtype, spc, key) = k.partition(" ")
+            if spc != " " or objtype not in ["domain", "type"]:
                 raise KeyError("Unrecognized object type: %s" % k)
-            if objtype == 'domain':
+            if objtype == "domain":
                 inobj = inobjs[k]
                 self[(schema.name, key)] = obj = Domain.from_map(
-                    key, schema, inobj)
-                newdb.constraints.from_map(obj, inobj, 'd')
-            elif objtype == 'type':
+                    key, schema, inobj
+                )
+                newdb.constraints.from_map(obj, inobj, "d")
+            elif objtype == "type":
                 inobj = inobjs[k]
-                if 'input' in inobj:
+                if "input" in inobj:
                     self[(schema.name, key)] = BaseType.from_map(
-                        key, schema, inobj)
-                elif 'attributes' in inobj:
+                        key, schema, inobj
+                    )
+                elif "attributes" in inobj:
                     self[(schema.name, key)] = obj = Composite.from_map(
-                        key, schema, inobj)
+                        key, schema, inobj
+                    )
                     try:
-                        newdb.columns.from_map(obj, inobj['attributes'])
+                        newdb.columns.from_map(obj, inobj["attributes"])
                     except KeyError as exc:
-                        exc.args = ("Type '%s' has no attributes" % key, )
+                        exc.args = ("Type '%s' has no attributes" % key,)
                         raise
-                elif 'labels' in inobj:
+                elif "labels" in inobj:
                     self[(schema.name, key)] = obj = Enum.from_map(
-                        key, schema, inobj)
-                elif 'subtype' in inobj:
+                        key, schema, inobj
+                    )
+                elif "subtype" in inobj:
                     self[(schema.name, key)] = obj = Range.from_map(
-                        key, schema, inobj)
+                        key, schema, inobj
+                    )
             else:
                 raise KeyError("Unrecognized object type: %s" % k)
 
@@ -711,7 +808,7 @@ class TypeDict(DbObjectDict):
         Return None if not found.
         """
         schema, name = split_schema_obj(obj)
-        name = name.rstrip('[](,)0123456789')
+        name = name.rstrip("[](,)0123456789")
         return self.get((schema, name))
 
     def link_refs(self, dbcolumns, dbconstrs, dbfuncs):
@@ -734,7 +831,6 @@ class TypeDict(DbObjectDict):
                     attr._type = self[(sch, typ)]
         for (sch, typ, cns) in dbconstrs:
             constr = dbconstrs[(sch, typ, cns)]
-            if isinstance(constr, CheckConstraint) and \
-               constr.is_domain_check:
+            if isinstance(constr, CheckConstraint) and constr.is_domain_check:
                 constr._table = dbtype = self[(sch, typ)]
                 dbtype.check_constraints.update({cns: constr})

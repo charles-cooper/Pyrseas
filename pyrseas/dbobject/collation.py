@@ -13,12 +13,13 @@ from . import commentable, ownable
 class Collation(DbSchemaObject):
     """A collation definition"""
 
-    keylist = ['schema', 'name']
+    keylist = ["schema", "name"]
     single_extern_file = True
-    catalog = 'pg_collation'
+    catalog = "pg_collation"
 
-    def __init__(self, name, schema, description, owner, lc_collate, lc_ctype,
-                 oid=None):
+    def __init__(
+        self, name, schema, description, owner, lc_collate, lc_ctype, oid=None
+    ):
         """Initialize the collation
 
         :param name: collation name (from collname)
@@ -56,9 +57,13 @@ class Collation(DbSchemaObject):
         :return: Collation instance
         """
         obj = Collation(
-            name, schema.name, inobj.pop('description', None),
-            inobj.pop('owner', None), inobj.pop('lc_collate', None),
-            inobj.pop('lc_ctype', None))
+            name,
+            schema.name,
+            inobj.pop("description", None),
+            inobj.pop("owner", None),
+            inobj.pop("lc_collate", None),
+            inobj.pop("lc_ctype", None),
+        )
         obj.set_oldname(inobj)
         return obj
 
@@ -69,9 +74,11 @@ class Collation(DbSchemaObject):
 
         :return: SQL statements
         """
-        return ["CREATE COLLATION %s (\n    LC_COLLATE = '%s',"
-                "\n    LC_CTYPE = '%s')" % (
-                    self.qualname(), self.lc_collate, self.lc_ctype)]
+        return [
+            "CREATE COLLATION %s (\n    LC_COLLATE = '%s',"
+            "\n    LC_CTYPE = '%s')"
+            % (self.qualname(), self.lc_collate, self.lc_ctype)
+        ]
 
 
 class CollationDict(DbObjectDict):
@@ -86,7 +93,7 @@ class CollationDict(DbObjectDict):
         :param inmap: the input YAML map defining the collations
         """
         for key in inmap:
-            if not key.startswith('collation '):
+            if not key.startswith("collation "):
                 raise KeyError("Unrecognized object type: %s" % key)
             name = key[10:]
             inobj = inmap[key]

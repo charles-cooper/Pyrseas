@@ -13,12 +13,13 @@ from . import quote_id, commentable
 class Extension(DbObject):
     """An extension"""
 
-    keylist = ['name']
+    keylist = ["name"]
     single_extern_file = True
-    catalog = 'pg_extension'
+    catalog = "pg_extension"
 
-    def __init__(self, name, description, owner, schema, version=None,
-                 oid=None):
+    def __init__(
+        self, name, description, owner, schema, version=None, oid=None
+    ):
         """Initialize the extension
 
         :param name: extension name (from extlname)
@@ -54,8 +55,12 @@ class Extension(DbObject):
         :return: extension instance
         """
         return Extension(
-            name, inobj.pop('description', None), inobj.pop('owner', None),
-            inobj.get('schema'), inobj.pop('version', None))
+            name,
+            inobj.pop("description", None),
+            inobj.pop("owner", None),
+            inobj.get("schema"),
+            inobj.pop("version", None),
+        )
 
     def get_implied_deps(self, db):
         """Return the implied dependencies of the object
@@ -79,13 +84,19 @@ class Extension(DbObject):
         """
         opt_clauses = []
         if self.schema is not None and self.schema not in (
-                'pg_catalog', 'public'):
+            "pg_catalog",
+            "public",
+        ):
             opt_clauses.append("SCHEMA %s" % quote_id(self.schema))
         if self.version is not None:
             opt_clauses.append("VERSION '%s'" % self.version)
-        return ["CREATE EXTENSION %s%s" % (
-                quote_id(self.name), ('\n    ' + '\n    '.join(opt_clauses))
-                if opt_clauses else '')]
+        return [
+            "CREATE EXTENSION %s%s"
+            % (
+                quote_id(self.name),
+                ("\n    " + "\n    ".join(opt_clauses)) if opt_clauses else "",
+            )
+        ]
 
     def alter(self, inobj, no_owner=True):
         """Generate SQL to transform an existing extension
@@ -118,12 +129,14 @@ class ExtensionDict(DbObjectDict):
         :param newdb: dictionary of input database
         """
         for key in inexts:
-            if not key.startswith('extension '):
+            if not key.startswith("extension "):
                 raise KeyError("Unrecognized object type: %s" % key)
             name = key[10:]
             inobj = inexts[key]
             self[name] = Extension.from_map(name, inobj)
             if self[name].name in langtempls:
-                lang = {'language %s' % self[name].name: {
-                    '_ext': 'e', 'owner': self[name].owner}}
+                lang = {
+                    "language %s"
+                    % self[name].name: {"_ext": "e", "owner": self[name].owner}
+                }
                 newdb.languages.from_map(lang)

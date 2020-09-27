@@ -36,7 +36,7 @@ class DbObjectWithOptions(DbObject):
         """
         dct = super(DbObjectWithOptions, self).to_map(db, no_owner, no_privs)
         if len(self.options) == 0:
-            dct.pop('options')
+            dct.pop("options")
         return dct
 
     def options_clause(self):
@@ -47,9 +47,9 @@ class DbObjectWithOptions(DbObject):
         """
         opts = []
         for opt in self.options:
-            (nm, val) = opt.split('=', 1)
+            (nm, val) = opt.split("=", 1)
             opts.append("%s '%s'" % (nm, val))
-        return "OPTIONS (%s)" % ', '.join(opts)
+        return "OPTIONS (%s)" % ", ".join(opts)
 
     def diff_options(self, newopts):
         """Compare options lists and generate SQL OPTIONS clause
@@ -60,8 +60,9 @@ class DbObjectWithOptions(DbObject):
         Generate ([ADD|SET|DROP key 'value') clauses from two lists in the
         form of 'key=value' strings.
         """
+
         def to_dict(optlist):
-            return dict(opt.split('=', 1) for opt in optlist)
+            return dict(opt.split("=", 1) for opt in optlist)
 
         oldopts = {}
         if len(self.options) > 0:
@@ -76,7 +77,7 @@ class DbObjectWithOptions(DbObject):
         for key, val in list(oldopts.items()):
             if key not in newopts:
                 clauses.append("DROP %s" % key)
-        return clauses and "OPTIONS (%s)" % ', '.join(clauses) or ''
+        return clauses and "OPTIONS (%s)" % ", ".join(clauses) or ""
 
     def alter(self, inobj):
         """Generate SQL to transform an existing object with options
@@ -90,8 +91,9 @@ class DbObjectWithOptions(DbObject):
             newopts = inobj.options
         diff_opts = self.diff_options(newopts)
         if diff_opts:
-            stmts.append("ALTER %s %s %s" % (
-                self.objtype, self.identifier(), diff_opts))
+            stmts.append(
+                "ALTER %s %s %s" % (self.objtype, self.identifier(), diff_opts)
+            )
         return stmts
 
 
@@ -99,11 +101,19 @@ class ForeignDataWrapper(DbObjectWithOptions):
     """A foreign data wrapper definition"""
 
     single_extern_file = True
-    catalog = 'pg_foreign_data_wrapper'
+    catalog = "pg_foreign_data_wrapper"
 
-    def __init__(self, name, options, description, owner, privileges,
-                 handler=None, validator=None,
-                 oid=None):
+    def __init__(
+        self,
+        name,
+        options,
+        description,
+        owner,
+        privileges,
+        handler=None,
+        validator=None,
+        oid=None,
+    ):
         """Initialize the foreign data wrapper
 
         :param name-options: see DbObjectWithOptions.__init__ params
@@ -145,9 +155,14 @@ class ForeignDataWrapper(DbObjectWithOptions):
         :return: FDW instance
         """
         obj = ForeignDataWrapper(
-            name, inobj.pop('options', {}), inobj.pop('description', None),
-            inobj.pop('owner', None), inobj.pop('privileges', []),
-            inobj.pop('handler', None), inobj.pop('validator', None))
+            name,
+            inobj.pop("options", {}),
+            inobj.pop("description", None),
+            inobj.pop("owner", None),
+            inobj.pop("privileges", []),
+            inobj.pop("handler", None),
+            inobj.pop("validator", None),
+        )
         obj.fix_privileges()
         obj.set_oldname(inobj)
         return obj
@@ -158,7 +173,7 @@ class ForeignDataWrapper(DbObjectWithOptions):
 
     @property
     def allprivs(self):
-        return 'U'
+        return "U"
 
     def to_map(self, db, no_owner, no_privs):
         """Convert wrappers and subsidiary objects to a YAML-suitable format
@@ -168,14 +183,14 @@ class ForeignDataWrapper(DbObjectWithOptions):
         :return: dictionary
         """
         dct = super(ForeignDataWrapper, self).to_map(db, no_owner, no_privs)
-        for attr in ('handler', 'validator'):
+        for attr in ("handler", "validator"):
             if getattr(self, attr) is None:
                 dct.pop(attr)
         srvs = {}
         for srv in self.servers:
             srvs.update(self.servers[srv].to_map(db, no_owner, no_privs))
         dct.update(srvs)
-        dct.pop('servers')
+        dct.pop("servers")
         return dct
 
     @commentable
@@ -187,14 +202,18 @@ class ForeignDataWrapper(DbObjectWithOptions):
         :return: SQL statements
         """
         clauses = []
-        for fnc in ('validator', 'handler'):
+        for fnc in ("validator", "handler"):
             if getattr(self, fnc) is not None:
                 clauses.append("%s %s" % (fnc.upper(), getattr(self, fnc)))
         if len(self.options) > 0:
             clauses.append(self.options_clause())
-        return ["CREATE FOREIGN DATA WRAPPER %s%s" % (
+        return [
+            "CREATE FOREIGN DATA WRAPPER %s%s"
+            % (
                 quote_id(self.name),
-                clauses and '\n    ' + ',\n    '.join(clauses) or '')]
+                clauses and "\n    " + ",\n    ".join(clauses) or "",
+            )
+        ]
 
 
 class ForeignDataWrapperDict(DbObjectDict):
@@ -209,13 +228,13 @@ class ForeignDataWrapperDict(DbObjectDict):
         :param newdb: collection of dictionaries defining the database
         """
         for key in inwrappers:
-            if not key.startswith('foreign data wrapper '):
+            if not key.startswith("foreign data wrapper "):
                 raise KeyError("Unrecognized object type: %s" % key)
             fdw = key[21:]
             inobj = inwrappers[key]
             inservs = {}
             for key in inobj:
-                if key.startswith('server '):
+                if key.startswith("server "):
                     inservs.update({key: inobj[key]})
             self[fdw] = ForeignDataWrapper.from_map(fdw, inobj)
             newdb.servers.from_map(self[fdw], inservs, newdb)
@@ -229,7 +248,7 @@ class ForeignDataWrapperDict(DbObjectDict):
             dbserver = dbservers[(fdw, srv)]
             assert self[fdw]
             wrapper = self[fdw]
-            if not hasattr(wrapper, 'servers'):
+            if not hasattr(wrapper, "servers"):
                 wrapper.servers = {}
             wrapper.servers.update({srv: dbserver})
 
@@ -238,12 +257,21 @@ class ForeignServer(DbObjectWithOptions):
     """A foreign server definition"""
 
     privobjtype = "FOREIGN SERVER"
-    keylist = ['wrapper', 'name']
-    catalog = 'pg_foreign_server'
+    keylist = ["wrapper", "name"]
+    catalog = "pg_foreign_server"
 
-    def __init__(self, name, options, description, owner, privileges,
-                 wrapper, type=None, version=None,
-                 oid=None):
+    def __init__(
+        self,
+        name,
+        options,
+        description,
+        owner,
+        privileges,
+        wrapper,
+        type=None,
+        version=None,
+        oid=None,
+    ):
         """Initialize the foreign server
 
         :param name-options: see DbObjectWithOptions.__init__ params
@@ -285,9 +313,15 @@ class ForeignServer(DbObjectWithOptions):
         :return: foreign server instance
         """
         obj = ForeignServer(
-            name, inobj.pop('options', {}), inobj.pop('description', None),
-            inobj.pop('owner', None), inobj.pop('privileges', []), wrapper,
-            inobj.pop('type', None), inobj.pop('version', None))
+            name,
+            inobj.pop("options", {}),
+            inobj.pop("description", None),
+            inobj.pop("owner", None),
+            inobj.pop("privileges", []),
+            wrapper,
+            inobj.pop("type", None),
+            inobj.pop("version", None),
+        )
         obj.fix_privileges()
         obj.set_oldname(inobj)
         return obj
@@ -298,7 +332,7 @@ class ForeignServer(DbObjectWithOptions):
 
     @property
     def allprivs(self):
-        return 'U'
+        return "U"
 
     def identifier(self):
         """Returns a full identifier for the foreign server
@@ -315,17 +349,17 @@ class ForeignServer(DbObjectWithOptions):
         :return: dictionary
         """
         dct = super(ForeignServer, self).to_map(db, no_owner, no_privs)
-        for attr in ('type', 'version'):
+        for attr in ("type", "version"):
             if getattr(self, attr) is None:
                 dct.pop(attr)
         key = self.extern_key()
         server = {key: dct}
-        server[key].pop('usermaps')
+        server[key].pop("usermaps")
         if len(self.usermaps) > 0:
             umaps = {}
             for umap in self.usermaps:
                 umaps.update({umap: self.usermaps[umap].to_map(db)})
-            server[key]['user mappings'] = umaps
+            server[key]["user mappings"] = umaps
 
         return server
 
@@ -339,16 +373,20 @@ class ForeignServer(DbObjectWithOptions):
         """
         clauses = []
         options = []
-        for opt in ('type', 'version'):
+        for opt in ("type", "version"):
             if getattr(self, opt) is not None:
                 clauses.append("%s '%s'" % (opt.upper(), getattr(self, opt)))
         if len(self.options) > 0:
             options.append(self.options_clause())
-        return ["CREATE SERVER %s%s\n    FOREIGN DATA WRAPPER %s%s" % (
+        return [
+            "CREATE SERVER %s%s\n    FOREIGN DATA WRAPPER %s%s"
+            % (
                 quote_id(self.name),
-                clauses and ' ' + ' '.join(clauses) or '',
+                clauses and " " + " ".join(clauses) or "",
                 quote_id(self.wrapper),
-                options and '\n    ' + ',\n    '.join(options) or '')]
+                options and "\n    " + ",\n    ".join(options) or "",
+            )
+        ]
 
     def get_implied_deps(self, db):
         deps = super(ForeignServer, self).get_implied_deps(db)
@@ -369,14 +407,15 @@ class ForeignServerDict(DbObjectDict):
         :param newdb: collection of dictionaries defining the database
         """
         for key in inservers:
-            if not key.startswith('server '):
+            if not key.startswith("server "):
                 raise KeyError("Unrecognized object type: %s" % key)
             srv = key[7:]
             inobj = inservers[key]
             self[(wrapper.name, srv)] = serv = ForeignServer.from_map(
-                srv, wrapper.name, inobj)
-            if 'user mappings' in inobj:
-                newdb.usermaps.from_map(serv, inobj['user mappings'])
+                srv, wrapper.name, inobj
+            )
+            if "user mappings" in inobj:
+                newdb.usermaps.from_map(serv, inobj["user mappings"])
 
     def to_map(self, db, no_owner, no_privs):
         """Convert the server dictionary to a regular dictionary
@@ -408,11 +447,10 @@ class ForeignServerDict(DbObjectDict):
 class UserMapping(DbObjectWithOptions):
     """A user mapping definition"""
 
-    keylist = ['wrapper', 'server', 'name']
-    catalog = 'pg_user_mappings'
+    keylist = ["wrapper", "server", "name"]
+    catalog = "pg_user_mappings"
 
-    def __init__(self, name, options, wrapper, server,
-                 oid=None):
+    def __init__(self, name, options, wrapper, server, oid=None):
         """Initialize the user mapping
 
         :param name-options: see DbObjectWithOptions.__init__ params
@@ -445,8 +483,9 @@ class UserMapping(DbObjectWithOptions):
         :param inobj: YAML map of the user mapping
         :return: user mapping instance
         """
-        obj = UserMapping(name, inobj.pop('options', {}), server.wrapper,
-                          server.name)
+        obj = UserMapping(
+            name, inobj.pop("options", {}), server.wrapper, server.name
+        )
         obj.set_oldname(inobj)
         return obj
 
@@ -467,8 +506,9 @@ class UserMapping(DbObjectWithOptions):
         :return: string
         """
         return "FOR %s SERVER %s" % (
-            self.name == 'PUBLIC' and 'PUBLIC' or quote_id(self.name),
-            quote_id(self.server))
+            self.name == "PUBLIC" and "PUBLIC" or quote_id(self.name),
+            quote_id(self.server),
+        )
 
     def create(self, dbversion=None):
         """Return SQL statements to CREATE the user mapping
@@ -478,10 +518,14 @@ class UserMapping(DbObjectWithOptions):
         options = []
         if len(self.options) > 0:
             options.append(self.options_clause())
-        return ["CREATE USER MAPPING FOR %s\n    SERVER %s%s" % (
-                self.name == 'PUBLIC' and 'PUBLIC' or
-                quote_id(self.name), quote_id(self.server),
-                options and '\n    ' + ',\n    '.join(options) or '')]
+        return [
+            "CREATE USER MAPPING FOR %s\n    SERVER %s%s"
+            % (
+                self.name == "PUBLIC" and "PUBLIC" or quote_id(self.name),
+                quote_id(self.server),
+                options and "\n    " + ",\n    ".join(options) or "",
+            )
+        ]
 
     def get_implied_deps(self, db):
         deps = super(UserMapping, self).get_implied_deps(db)
@@ -503,7 +547,8 @@ class UserMappingDict(DbObjectDict):
         for key in inusermaps:
             inobj = inusermaps[key]
             self[(server.wrapper, server.name, key)] = UserMapping.from_map(
-                key, server, inobj)
+                key, server, inobj
+            )
 
     def to_map(self, db):
         """Convert the user mapping dictionary to a regular dictionary
@@ -523,19 +568,28 @@ class ForeignTable(Table, DbObjectWithOptions):
     """A foreign table definition"""
 
     privobjtype = "TABLE"
-    catalog = 'pg_foreign_table'
+    catalog = "pg_foreign_table"
 
-    def __init__(self, name, schema, description, owner, privileges,
-                 server=None, options={},
-                 oid=None):
+    def __init__(
+        self,
+        name,
+        schema,
+        description,
+        owner,
+        privileges,
+        server=None,
+        options={},
+        oid=None,
+    ):
         """Initialize the foreign table
 
         :param name-privileges: see DbClass.__init__ params
         :param server: foreign server (from ftserver)
         :param options: table options (from ftoptions)
         """
-        super(ForeignTable, self).__init__(name, schema, description, owner,
-                                           privileges)
+        super(ForeignTable, self).__init__(
+            name, schema, description, owner, privileges
+        )
         self.server = server
         self.options = {} if options is None else options
         self.columns = []
@@ -566,9 +620,14 @@ class ForeignTable(Table, DbObjectWithOptions):
         :return: foreign table instance
         """
         obj = ForeignTable(
-            name, schema.name, inobj.pop('description', None),
-            inobj.pop('owner', None), inobj.pop('privileges', []),
-            inobj.pop('server', None), inobj.pop('options', {}))
+            name,
+            schema.name,
+            inobj.pop("description", None),
+            inobj.pop("owner", None),
+            inobj.pop("privileges", []),
+            inobj.pop("server", None),
+            inobj.pop("options", {}),
+        )
         obj.fix_privileges()
         return obj
 
@@ -582,8 +641,11 @@ class ForeignTable(Table, DbObjectWithOptions):
         :param opts: options to include/exclude tables, etc.
         :return: dictionary
         """
-        if hasattr(opts, 'excl_tables') and opts.excl_tables \
-                and self.name in opts.excl_tables:
+        if (
+            hasattr(opts, "excl_tables")
+            and opts.excl_tables
+            and self.name in opts.excl_tables
+        ):
             return {}
         if len(self.columns) == 0:
             return {}
@@ -592,7 +654,7 @@ class ForeignTable(Table, DbObjectWithOptions):
             col = self.columns[i].to_map(db, opts.no_privs)
             if col:
                 cols.append(col)
-        tbl = {'columns': cols, 'server': self.server}
+        tbl = {"columns": cols, "server": self.server}
         if self.description is not None:
             tbl.update(description=self.description)
         if not opts.no_owner and self.owner is not None:
@@ -600,7 +662,7 @@ class ForeignTable(Table, DbObjectWithOptions):
         if len(self.options) > 0:
             tbl.update(options=self.options)
         if not opts.no_privs:
-            tbl.update({'privileges': self.map_privs()})
+            tbl.update({"privileges": self.map_privs()})
 
         return tbl
 
@@ -617,9 +679,15 @@ class ForeignTable(Table, DbObjectWithOptions):
             cols.append("    " + col.add()[0])
         if len(self.options) > 0:
             options.append(self.options_clause())
-        stmts.append("CREATE FOREIGN TABLE %s (\n%s)\n    SERVER %s%s" % (
-            self.qualname(), ",\n".join(cols), self.server,
-            options and '\n    ' + ',\n    '.join(options) or ''))
+        stmts.append(
+            "CREATE FOREIGN TABLE %s (\n%s)\n    SERVER %s%s"
+            % (
+                self.qualname(),
+                ",\n".join(cols),
+                self.server,
+                options and "\n    " + ",\n    ".join(options) or "",
+            )
+        )
         if self.owner is not None:
             stmts.append(self.alter_owner())
         if self.description is not None:
@@ -668,16 +736,17 @@ class ForeignTableDict(ClassDict):
         :param newdb: collection of dictionaries defining the database
         """
         for key in inobjs:
-            if not key.startswith('foreign table '):
+            if not key.startswith("foreign table "):
                 raise KeyError("Unrecognized object type: %s" % key)
             ftb = key[14:]
             inobj = inobjs[key]
             self[(schema.name, ftb)] = ftable = ForeignTable.from_map(
-                ftb, schema, inobj)
+                ftb, schema, inobj
+            )
             try:
-                newdb.columns.from_map(ftable, inobj['columns'])
+                newdb.columns.from_map(ftable, inobj["columns"])
             except KeyError as exc:
-                exc.args = ("Foreign table '%s' has no columns" % ftb, )
+                exc.args = ("Foreign table '%s' has no columns" % ftb,)
                 raise
 
     def link_refs(self, dbcolumns):

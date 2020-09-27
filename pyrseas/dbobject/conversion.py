@@ -13,13 +13,22 @@ from . import commentable, ownable
 class Conversion(DbSchemaObject):
     """A conversion definition"""
 
-    keylist = ['schema', 'name']
+    keylist = ["schema", "name"]
     single_extern_file = True
-    catalog = 'pg_conversion'
+    catalog = "pg_conversion"
 
-    def __init__(self, name, schema, description, owner, source_encoding,
-                 dest_encoding, function, default=False,
-                 oid=None):
+    def __init__(
+        self,
+        name,
+        schema,
+        description,
+        owner,
+        source_encoding,
+        dest_encoding,
+        function,
+        default=False,
+        oid=None,
+    ):
         """Initialize the conversion
 
         :param name: conversion name (from conname)
@@ -63,10 +72,15 @@ class Conversion(DbSchemaObject):
         :return: Conversion instance
         """
         obj = Conversion(
-            name, schema.name, inobj.pop('description', None),
-            inobj.pop('owner', None), inobj.pop('source_encoding'),
-            inobj.pop('dest_encoding'), inobj.pop('function'),
-            inobj.pop('default', False))
+            name,
+            schema.name,
+            inobj.pop("description", None),
+            inobj.pop("owner", None),
+            inobj.pop("source_encoding"),
+            inobj.pop("dest_encoding"),
+            inobj.pop("function"),
+            inobj.pop("default", False),
+        )
         obj.set_oldname(inobj)
         return obj
 
@@ -77,7 +91,7 @@ class Conversion(DbSchemaObject):
         """
         dct = super(Conversion, self).to_map(db, no_owner)
         if not self.default:
-            del dct['default']
+            del dct["default"]
         return dct
 
     @commentable
@@ -87,12 +101,19 @@ class Conversion(DbSchemaObject):
 
         :return: SQL statements
         """
-        dflt = ''
+        dflt = ""
         if self.default:
-            dflt = 'DEFAULT '
-        return ["CREATE %sCONVERSION %s\n    FOR '%s' TO '%s' FROM %s" % (
-                dflt, self.qualname(), self.source_encoding,
-                self.dest_encoding, self.function)]
+            dflt = "DEFAULT "
+        return [
+            "CREATE %sCONVERSION %s\n    FOR '%s' TO '%s' FROM %s"
+            % (
+                dflt,
+                self.qualname(),
+                self.source_encoding,
+                self.dest_encoding,
+                self.function,
+            )
+        ]
 
 
 class ConversionDict(DbObjectDict):
@@ -107,7 +128,7 @@ class ConversionDict(DbObjectDict):
         :param inmap: the input YAML map defining the conversions
         """
         for key in inmap:
-            if not key.startswith('conversion '):
+            if not key.startswith("conversion "):
                 raise KeyError("Unrecognized object type: %s" % key)
             cnv = key[11:]
             inobj = inmap[key]

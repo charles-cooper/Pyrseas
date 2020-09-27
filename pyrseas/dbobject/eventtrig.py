@@ -10,20 +10,28 @@ from . import DbObjectDict, DbObject
 from . import quote_id, commentable
 from .function import split_schema_func, join_schema_func
 
-EXEC_PROC = 'EXECUTE PROCEDURE '
+EXEC_PROC = "EXECUTE PROCEDURE "
 
-ENABLE_MODES = {'O': True, 'D': False, 'R': 'replica', 'A': 'always'}
+ENABLE_MODES = {"O": True, "D": False, "R": "replica", "A": "always"}
 
 
 class EventTrigger(DbObject):
     """An event trigger"""
 
-    keylist = ['name']
-    catalog = 'pg_event_trigger'
+    keylist = ["name"]
+    catalog = "pg_event_trigger"
 
-    def __init__(self, name, description, owner, event, procedure,
-                 enabled=False, tags=None,
-                 oid=None):
+    def __init__(
+        self,
+        name,
+        description,
+        owner,
+        event,
+        procedure,
+        enabled=False,
+        tags=None,
+        oid=None,
+    ):
         """Initialize the event trigger
 
         :param name: trigger name (from evtname)
@@ -37,7 +45,7 @@ class EventTrigger(DbObject):
         super(EventTrigger, self).__init__(name, description)
         self._init_own_privs(owner, [])
         self.event = event
-        if procedure[-2:] == '()':
+        if procedure[-2:] == "()":
             procedure = procedure[:-2]
         self.procedure = split_schema_func(None, procedure)
         if enabled is False or enabled is True:
@@ -71,9 +79,14 @@ class EventTrigger(DbObject):
         :return: event trigger instance
         """
         obj = EventTrigger(
-            name, inobj.pop('description', None), inobj.pop('owner', None),
-            inobj.pop('event', None), inobj.pop('procedure', None),
-            inobj.pop('enabled', False), inobj.pop('tags', None))
+            name,
+            inobj.pop("description", None),
+            inobj.pop("owner", None),
+            inobj.pop("event", None),
+            inobj.pop("procedure", None),
+            inobj.pop("enabled", False),
+            inobj.pop("tags", None),
+        )
         obj.set_oldname(inobj)
         return obj
 
@@ -88,9 +101,9 @@ class EventTrigger(DbObject):
         :return: dictionary
         """
         dct = super(EventTrigger, self).to_map(db, no_owner)
-        dct['procedure'] = join_schema_func(self.procedure) + "()"
+        dct["procedure"] = join_schema_func(self.procedure) + "()"
         if self.tags is None:
-            dct.pop('tags')
+            dct.pop("tags")
         return dct
 
     @commentable
@@ -99,18 +112,26 @@ class EventTrigger(DbObject):
 
         :return: SQL statements
         """
-        filter = ''
+        filter = ""
         if self.tags is not None:
             filter = "\n    WHEN tag IN (%s)" % ", ".join(
-                ["'%s'" % tag for tag in self.tags])
-        return ["CREATE %s %s\n    ON %s%s\n    EXECUTE PROCEDURE %s()" % (
-                self.objtype, quote_id(self.name), self.event, filter,
-                join_schema_func(self.procedure))]
+                ["'%s'" % tag for tag in self.tags]
+            )
+        return [
+            "CREATE %s %s\n    ON %s%s\n    EXECUTE PROCEDURE %s()"
+            % (
+                self.objtype,
+                quote_id(self.name),
+                self.event,
+                filter,
+                join_schema_func(self.procedure),
+            )
+        ]
 
     def get_implied_deps(self, db):
         deps = super(EventTrigger, self).get_implied_deps(db)
         sch, fnc = self.procedure
-        deps.add(db.functions[(sch, fnc, '')])
+        deps.add(db.functions[(sch, fnc, "")])
         return deps
 
 
@@ -132,11 +153,12 @@ class EventTriggerDict(DbObjectDict):
         :param newdb: dictionary of input database
         """
         for key in intriggers:
-            if not key.startswith('event trigger '):
+            if not key.startswith("event trigger "):
                 raise KeyError("Unrecognized object type: %s" % key)
             trg = key[14:]
             inobj = intriggers[key]
             if not inobj:
-                raise ValueError("Event trigger '%s' has no specification" %
-                                 trg)
+                raise ValueError(
+                    "Event trigger '%s' has no specification" % trg
+                )
             self[trg] = EventTrigger.from_map(trg, inobj)

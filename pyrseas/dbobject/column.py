@@ -10,19 +10,32 @@ from . import DbObjectDict, DbSchemaObject, quote_id
 from .privileges import privileges_from_map, add_grant, diff_privs
 
 
-IDENTITY_TYPES = {'a': 'always', 'd': 'by default'}
+IDENTITY_TYPES = {"a": "always", "d": "by default"}
 
 
 class Column(DbSchemaObject):
     "A table column or attribute of a composite type"
 
-    keylist = ['schema', 'table']    # plus attribute number
-    allprivs = 'arwx'
+    keylist = ["schema", "table"]  # plus attribute number
+    allprivs = "arwx"
 
-    def __init__(self, name, schema, table, number, type, description=None,
-                 privileges=[], not_null=True, default=None, identity=None,
-                 collation=None, statistics=None, inherited=False,
-                 dropped=False):
+    def __init__(
+        self,
+        name,
+        schema,
+        table,
+        number,
+        type,
+        description=None,
+        privileges=[],
+        not_null=True,
+        default=None,
+        identity=None,
+        collation=None,
+        statistics=None,
+        inherited=False,
+        dropped=False,
+    ):
         """Initialize the column
 
         :param name: column/attribute name (from attname)
@@ -47,14 +60,13 @@ class Column(DbSchemaObject):
         self.type = type
         self.not_null = not_null
         self.default = default
-        if identity == '' or identity is None:
+        if identity == "" or identity is None:
             self.identity = None
         elif identity is not None and len(identity) == 1:
             self.identity = IDENTITY_TYPES[identity]
         else:
             self.identity = identity
-        assert self.identity is None or \
-            self.identity in IDENTITY_TYPES.values()
+        assert self.identity is None or self.identity in IDENTITY_TYPES.values()
         self.collation = collation
         self.statistics = statistics
         self.inherited = inherited
@@ -98,19 +110,31 @@ class Column(DbSchemaObject):
         :return: Column instance
         """
         obj = Column(
-            name, table.schema, table.name, num, inobj.pop('type', None),
-            inobj.pop('description', None), inobj.pop('privileges', []),
-            inobj.pop('not_null', False), inobj.pop('default', None),
-            inobj.pop('identity', None), inobj.pop('collation', None),
-            inobj.pop('statistics', None), inobj.pop('inherited', False),
-            inobj.pop('dropped', False))
+            name,
+            table.schema,
+            table.name,
+            num,
+            inobj.pop("type", None),
+            inobj.pop("description", None),
+            inobj.pop("privileges", []),
+            inobj.pop("not_null", False),
+            inobj.pop("default", None),
+            inobj.pop("identity", None),
+            inobj.pop("collation", None),
+            inobj.pop("statistics", None),
+            inobj.pop("inherited", False),
+            inobj.pop("dropped", False),
+        )
         obj.set_oldname(inobj)
         if len(obj.privileges) > 0:
             if table.owner is None:
-                raise ValueError("Column '%s.%s' has privileges but "
-                                 "no owner information" % (table.name, name))
+                raise ValueError(
+                    "Column '%s.%s' has privileges but "
+                    "no owner information" % (table.name, name)
+                )
             obj.privileges = privileges_from_map(
-                obj.privileges, obj.allprivs, table.owner)
+                obj.privileges, obj.allprivs, table.owner
+            )
         return obj
 
     def to_map(self, db, no_privs):
@@ -122,19 +146,19 @@ class Column(DbSchemaObject):
         if self.dropped:
             return None
         dct = super(Column, self).to_map(db, False, no_privs, deepcopy=False)
-        del dct['number'], dct['name'], dct['dropped']
+        del dct["number"], dct["name"], dct["dropped"]
         if not self.not_null:
-            dct.pop('not_null')
+            dct.pop("not_null")
         if self.default is None:
-            dct.pop('default')
+            dct.pop("default")
         if self.identity is None:
-            dct.pop('identity')
-        if self.collation is None or self.collation == 'default':
-            dct.pop('collation')
+            dct.pop("identity")
+        if self.collation is None or self.collation == "default":
+            dct.pop("collation")
         if not self.inherited:
-            dct.pop('inherited')
+            dct.pop("inherited")
         if self.statistics is None or self.statistics == -1:
-            dct.pop('statistics')
+            dct.pop("statistics")
         return {self.name: dct}
 
     def add(self):
@@ -144,23 +168,24 @@ class Column(DbSchemaObject):
         """
         stmt = "%s %s" % (quote_id(self.name), self.type)
         if self.not_null:
-            stmt += ' NOT NULL'
+            stmt += " NOT NULL"
         if self.default is not None:
-            stmt += ' DEFAULT ' + self.default
+            stmt += " DEFAULT " + self.default
         if self.identity is not None:
             stmt += " GENERATED %s AS IDENTITY" % self.identity.upper()
             stmt += " (%s)" % self._owner_seq.add_inline()
-        if self.collation is not None and self.collation != 'default':
+        if self.collation is not None and self.collation != "default":
             stmt += ' COLLATE "%s"' % self.collation
-        return (stmt, '' if self.description is None else self.comment())
+        return (stmt, "" if self.description is None else self.comment())
 
     def add_privs(self):
         """Generate SQL statements to grant privileges on new column
 
         :return: list of SQL statements
         """
-        return [add_grant(self._table, priv, self.name)
-                for priv in self.privileges]
+        return [
+            add_grant(self._table, priv, self.name) for priv in self.privileges
+        ]
 
     def diff_privileges(self, incol):
         """Generate SQL statements to grant or revoke privileges
@@ -168,8 +193,15 @@ class Column(DbSchemaObject):
         :param incol: a YAML map defining the input column
         :return: list of SQL statements
         """
-        return [diff_privs(self._table, self.privileges, incol._table,
-                           incol.privileges, self.name)]
+        return [
+            diff_privs(
+                self._table,
+                self.privileges,
+                incol._table,
+                incol.privileges,
+                self.name,
+            )
+        ]
 
     def comment(self):
         """Return a SQL COMMENT statement for the column
@@ -177,7 +209,10 @@ class Column(DbSchemaObject):
         :return: SQL statement
         """
         return "COMMENT ON COLUMN %s.%s IS %s" % (
-            self._table.qualname(), self.name, self._comment_text())
+            self._table.qualname(),
+            self.name,
+            self._comment_text(),
+        )
 
     def drop(self):
         """Return string to drop the column via ALTER TABLE
@@ -187,15 +222,19 @@ class Column(DbSchemaObject):
         if self.dropped:
             return []
         if self._table is not None:
-            (comptype, objtype) = (self._table.objtype, 'COLUMN')
+            (comptype, objtype) = (self._table.objtype, "COLUMN")
             compname = self._table.qualname()
         elif self._type is not None:
-            (comptype, objtype) = ('TYPE', 'ATTRIBUTE')
+            (comptype, objtype) = ("TYPE", "ATTRIBUTE")
             compname = self._type.qualname()
         else:
             raise TypeError("Cannot determine type of %s", self.name)
-        return "ALTER %s %s DROP %s %s" % (comptype, compname, objtype,
-                                           quote_id(self.name))
+        return "ALTER %s %s DROP %s %s" % (
+            comptype,
+            compname,
+            objtype,
+            quote_id(self.name),
+        )
 
     def rename(self, newname):
         """Return SQL statement to RENAME the column
@@ -204,15 +243,20 @@ class Column(DbSchemaObject):
         :return: SQL statement
         """
         if self._table is not None:
-            (comptype, objtype) = (self._table.objtype, 'COLUMN')
+            (comptype, objtype) = (self._table.objtype, "COLUMN")
             compname = self._table.qualname()
         elif self._type is not None:
-            (comptype, objtype) = ('TYPE', 'ATTRIBUTE')
+            (comptype, objtype) = ("TYPE", "ATTRIBUTE")
             compname = self._type.qualname()
         else:
             raise TypeError("Cannot determine type of %s", self.name)
         stmt = "ALTER %s %s RENAME %s %s TO %s" % (
-            comptype, compname, objtype, self.name, newname)
+            comptype,
+            compname,
+            objtype,
+            self.name,
+            newname,
+        )
         self.name = newname
         return stmt
 
@@ -251,11 +295,13 @@ class Column(DbSchemaObject):
                 stmts.append(base + "SET DEFAULT %s" % incol.default)
         # check STATISTICS
         if self.statistics is not None:
-            if self.statistics == -1 and (incol.statistics is not None
-                                          and incol.statistics != -1):
+            if self.statistics == -1 and (
+                incol.statistics is not None and incol.statistics != -1
+            ):
                 stmts.append(base + "SET STATISTICS %d" % incol.statistics)
-            if self.statistics != -1 and (incol.statistics is None
-                                          or incol.statistics == -1):
+            if self.statistics != -1 and (
+                incol.statistics is None or incol.statistics == -1
+            ):
                 stmts.append(base + "SET STATISTICS -1")
 
         return (", ".join(stmts), self.diff_description(incol))
@@ -289,5 +335,5 @@ class ColumnDict(DbObjectDict):
                 if isinstance(incol[key], dict):
                     inobj = incol[key]
                 else:
-                    inobj = {'type': incol[key]}
+                    inobj = {"type": incol[key]}
                 cols.append(Column.from_map(key, table, num, inobj))

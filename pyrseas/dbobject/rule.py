@@ -13,12 +13,22 @@ from . import quote_id, commentable, split_schema_obj
 class Rule(DbSchemaObject):
     """A rewrite rule definition"""
 
-    keylist = ['schema', 'table', 'name']
-    catalog = 'pg_rewrite'
+    keylist = ["schema", "table", "name"]
+    catalog = "pg_rewrite"
 
-    def __init__(self, name, schema, table, description, event, instead=False,
-                 actions=None, condition=None, definition=None,
-                 oid=None):
+    def __init__(
+        self,
+        name,
+        schema,
+        table,
+        description,
+        event,
+        instead=False,
+        actions=None,
+        condition=None,
+        definition=None,
+        oid=None,
+    ):
         """Initialize the rewrite rule
 
         :param name: rule name (from rulename)
@@ -40,13 +50,14 @@ class Rule(DbSchemaObject):
         if definition is not None:
             assert actions is None
             assert condition is None
-            do_loc = definition.index(' DO ')
-            if 'WHERE' in definition:
+            do_loc = definition.index(" DO ")
+            if "WHERE" in definition:
                 self.condition = definition[
-                    definition.index(' WHERE ') + 7:do_loc]
+                    definition.index(" WHERE ") + 7 : do_loc
+                ]
             if instead:
                 do_loc += 8
-            self.actions = definition[do_loc + 4:-1]
+            self.actions = definition[do_loc + 4 : -1]
         else:
             self.actions = actions
             self.condition = condition
@@ -77,9 +88,15 @@ class Rule(DbSchemaObject):
         :return: Rule instance
         """
         obj = Rule(
-            name, table.schema, table.name, inobj.pop('description', None),
-            inobj.get('event'), inobj.pop('instead', False),
-            inobj.pop('actions', None), inobj.pop('condition', None))
+            name,
+            table.schema,
+            table.name,
+            inobj.pop("description", None),
+            inobj.get("event"),
+            inobj.pop("instead", False),
+            inobj.pop("actions", None),
+            inobj.pop("condition", None),
+        )
         obj.set_oldname(inobj)
         return obj
 
@@ -97,7 +114,7 @@ class Rule(DbSchemaObject):
         """
         dct = super(Rule, self).to_map(db)
         if not self.instead:
-            dct.pop('instead')
+            dct.pop("instead")
         return {self.name: dct}
 
     @commentable
@@ -106,14 +123,22 @@ class Rule(DbSchemaObject):
 
         :return: SQL statements
         """
-        where = instead = ''
+        where = instead = ""
         if self.condition is not None:
-            where = ' WHERE %s' % self.condition
+            where = " WHERE %s" % self.condition
         if self.instead:
-            instead = 'INSTEAD '
-        return ["CREATE RULE %s AS ON %s\n    TO %s%s\n    DO %s%s" % (
-                quote_id(self.name), self.event.upper(),
-                self._table.qualname(), where, instead, self.actions)]
+            instead = "INSTEAD "
+        return [
+            "CREATE RULE %s AS ON %s\n    TO %s%s\n    DO %s%s"
+            % (
+                quote_id(self.name),
+                self.event.upper(),
+                self._table.qualname(),
+                where,
+                instead,
+                self.actions,
+            )
+        ]
 
     def get_implied_deps(self, db):
         """Return set of implicit dependencies
@@ -140,4 +165,5 @@ class RuleDict(DbObjectDict):
         for rul in inmap:
             inobj = inmap[rul]
             self[(table.schema, table.name, rul)] = Rule.from_map(
-                rul, table, inobj)
+                rul, table, inobj
+            )

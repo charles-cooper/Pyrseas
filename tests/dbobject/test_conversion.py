@@ -6,8 +6,9 @@ import pytest
 from pyrseas.testutils import DatabaseToMapTestCase
 from pyrseas.testutils import InputMapToSqlTestCase, fix_indent
 
-CREATE_STMT = "CREATE CONVERSION sd.c1 FOR 'LATIN1' TO 'UTF8' " \
-    "FROM iso8859_1_to_utf8"
+CREATE_STMT = (
+    "CREATE CONVERSION sd.c1 FOR 'LATIN1' TO 'UTF8' " "FROM iso8859_1_to_utf8"
+)
 DROP_STMT = "DROP CONVERSION IF EXISTS sd.c1"
 COMMENT_STMT = "COMMENT ON CONVERSION sd.c1 IS 'Test conversion c1'"
 
@@ -18,15 +19,20 @@ class ConversionToMapTestCase(DatabaseToMapTestCase):
     def test_map_conversion1(self):
         "Map a conversion"
         dbmap = self.to_map([CREATE_STMT])
-        expmap = {'source_encoding': 'LATIN1', 'dest_encoding': 'UTF8',
-                  'function': 'iso8859_1_to_utf8'}
-        assert dbmap['schema sd']['conversion c1'] == expmap
+        expmap = {
+            "source_encoding": "LATIN1",
+            "dest_encoding": "UTF8",
+            "function": "iso8859_1_to_utf8",
+        }
+        assert dbmap["schema sd"]["conversion c1"] == expmap
 
     def test_map_conversion_comment(self):
         "Map a conversion comment"
         dbmap = self.to_map([CREATE_STMT, COMMENT_STMT])
-        assert dbmap['schema sd']['conversion c1']['description'] == \
-            'Test conversion c1'
+        assert (
+            dbmap["schema sd"]["conversion c1"]["description"]
+            == "Test conversion c1"
+        )
 
 
 class ConversionToSqlTestCase(InputMapToSqlTestCase):
@@ -35,28 +41,51 @@ class ConversionToSqlTestCase(InputMapToSqlTestCase):
     def test_create_conversion(self):
         "Create a conversion"
         inmap = self.std_map()
-        inmap['schema sd'].update({'conversion c1': {
-            'source_encoding': 'LATIN1', 'dest_encoding': 'UTF8',
-            'function': 'iso8859_1_to_utf8'}})
+        inmap["schema sd"].update(
+            {
+                "conversion c1": {
+                    "source_encoding": "LATIN1",
+                    "dest_encoding": "UTF8",
+                    "function": "iso8859_1_to_utf8",
+                }
+            }
+        )
         sql = self.to_sql(inmap)
         assert fix_indent(sql[0]) == CREATE_STMT
 
     def test_create_conversion_schema(self):
         "Create a conversion in a non-default schema"
         inmap = self.std_map()
-        inmap.update({'schema s1': {'conversion c1': {
-            'source_encoding': 'LATIN1', 'dest_encoding': 'UTF8',
-            'function': 'iso8859_1_to_utf8', 'default': True}}})
+        inmap.update(
+            {
+                "schema s1": {
+                    "conversion c1": {
+                        "source_encoding": "LATIN1",
+                        "dest_encoding": "UTF8",
+                        "function": "iso8859_1_to_utf8",
+                        "default": True,
+                    }
+                }
+            }
+        )
         sql = self.to_sql(inmap, ["CREATE SCHEMA s1"])
-        assert fix_indent(sql[0]) == "CREATE DEFAULT CONVERSION s1.c1 " \
+        assert (
+            fix_indent(sql[0]) == "CREATE DEFAULT CONVERSION s1.c1 "
             "FOR 'LATIN1' TO 'UTF8' FROM iso8859_1_to_utf8"
+        )
 
     def test_bad_conversion_map(self):
         "Error creating a conversion with a bad map"
         inmap = self.std_map()
-        inmap['schema sd'].update({'c1': {
-            'source_encoding': 'LATIN1', 'dest_encoding': 'UTF8',
-            'function': 'iso8859_1_to_utf8'}})
+        inmap["schema sd"].update(
+            {
+                "c1": {
+                    "source_encoding": "LATIN1",
+                    "dest_encoding": "UTF8",
+                    "function": "iso8859_1_to_utf8",
+                }
+            }
+        )
         with pytest.raises(KeyError):
             self.to_sql(inmap)
 
@@ -68,10 +97,16 @@ class ConversionToSqlTestCase(InputMapToSqlTestCase):
     def test_conversion_with_comment(self):
         "Create a conversion with a comment"
         inmap = self.std_map()
-        inmap['schema sd'].update({'conversion c1': {
-            'description': 'Test conversion c1',
-            'source_encoding': 'LATIN1', 'dest_encoding': 'UTF8',
-            'function': 'iso8859_1_to_utf8'}})
+        inmap["schema sd"].update(
+            {
+                "conversion c1": {
+                    "description": "Test conversion c1",
+                    "source_encoding": "LATIN1",
+                    "dest_encoding": "UTF8",
+                    "function": "iso8859_1_to_utf8",
+                }
+            }
+        )
         sql = self.to_sql(inmap)
         assert fix_indent(sql[0]) == CREATE_STMT
         assert sql[1] == COMMENT_STMT
@@ -79,10 +114,16 @@ class ConversionToSqlTestCase(InputMapToSqlTestCase):
     def test_comment_on_conversion(self):
         "Create a comment for an existing conversion"
         inmap = self.std_map()
-        inmap['schema sd'].update({'conversion c1': {
-            'description': 'Test conversion c1',
-            'source_encoding': 'LATIN1', 'dest_encoding': 'UTF8',
-            'function': 'iso8859_1_to_utf8'}})
+        inmap["schema sd"].update(
+            {
+                "conversion c1": {
+                    "description": "Test conversion c1",
+                    "source_encoding": "LATIN1",
+                    "dest_encoding": "UTF8",
+                    "function": "iso8859_1_to_utf8",
+                }
+            }
+        )
         sql = self.to_sql(inmap, [CREATE_STMT])
         assert sql == [COMMENT_STMT]
 
@@ -90,9 +131,15 @@ class ConversionToSqlTestCase(InputMapToSqlTestCase):
         "Drop a comment on an existing conversion"
         stmts = [CREATE_STMT, COMMENT_STMT]
         inmap = self.std_map()
-        inmap['schema sd'].update({'conversion c1': {
-            'source_encoding': 'LATIN1', 'dest_encoding': 'UTF8',
-            'function': 'iso8859_1_to_utf8'}})
+        inmap["schema sd"].update(
+            {
+                "conversion c1": {
+                    "source_encoding": "LATIN1",
+                    "dest_encoding": "UTF8",
+                    "function": "iso8859_1_to_utf8",
+                }
+            }
+        )
         sql = self.to_sql(inmap, stmts)
         assert sql == ["COMMENT ON CONVERSION sd.c1 IS NULL"]
 
@@ -100,10 +147,15 @@ class ConversionToSqlTestCase(InputMapToSqlTestCase):
         "Change existing comment on a conversion"
         stmts = [CREATE_STMT, COMMENT_STMT]
         inmap = self.std_map()
-        inmap['schema sd'].update({'conversion c1': {
-            'description': 'Changed conversion c1',
-            'source_encoding': 'LATIN1', 'dest_encoding': 'UTF8',
-            'function': 'iso8859_1_to_utf8'}})
+        inmap["schema sd"].update(
+            {
+                "conversion c1": {
+                    "description": "Changed conversion c1",
+                    "source_encoding": "LATIN1",
+                    "dest_encoding": "UTF8",
+                    "function": "iso8859_1_to_utf8",
+                }
+            }
+        )
         sql = self.to_sql(inmap, stmts)
-        assert sql == [
-            "COMMENT ON CONVERSION sd.c1 IS 'Changed conversion c1'"]
+        assert sql == ["COMMENT ON CONVERSION sd.c1 IS 'Changed conversion c1'"]

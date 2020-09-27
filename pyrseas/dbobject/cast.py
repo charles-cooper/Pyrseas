@@ -10,19 +10,20 @@ from . import DbObject, DbObjectDict, commentable
 from . import split_func_args
 
 
-CONTEXTS = {'a': 'assignment', 'e': 'explicit', 'i': 'implicit'}
-METHODS = {'f': 'function', 'i': 'inout', 'b': 'binary coercible'}
+CONTEXTS = {"a": "assignment", "e": "explicit", "i": "implicit"}
+METHODS = {"f": "function", "i": "inout", "b": "binary coercible"}
 
 
 class Cast(DbObject):
     """A cast from a source type to a target type"""
 
-    keylist = ['source', 'target']
+    keylist = ["source", "target"]
     single_extern_file = True
-    catalog = 'pg_cast'
+    catalog = "pg_cast"
 
-    def __init__(self, source, target, description, function, context, method,
-                 oid=None):
+    def __init__(
+        self, source, target, description, function, context, method, oid=None
+    ):
         """Initialize the cast
 
         :param source: source data type (from castsource)
@@ -32,7 +33,7 @@ class Cast(DbObject):
         :param context: context indicator (from castcontext)
         :param method: method indicator (from castmethod)
         """
-        super(Cast, self).__init__('%s AS %s' % (source, target), description)
+        super(Cast, self).__init__("%s AS %s" % (source, target), description)
         self._init_own_privs(None, [])
         self.source = source
         self.target = target
@@ -78,17 +79,24 @@ class Cast(DbObject):
         :return: cast instance
         """
         return Cast(
-            source, target, inobj.pop('description', None),
-            inobj.pop('function', None), inobj.get('context'),
-            inobj.get('method'))
+            source,
+            target,
+            inobj.pop("description", None),
+            inobj.pop("function", None),
+            inobj.get("context"),
+            inobj.get("method"),
+        )
 
     def extern_key(self):
         """Return the key to be used in external maps for this cast
 
         :return: string
         """
-        return '%s (%s as %s)' % (self.objtype.lower(), self.source,
-                                  self.target)
+        return "%s (%s as %s)" % (
+            self.objtype.lower(),
+            self.source,
+            self.target,
+        )
 
     def identifier(self):
         """Return a full identifier for a cast object
@@ -103,9 +111,9 @@ class Cast(DbObject):
         :return: dictionary
         """
         dct = super(Cast, self).to_map(db)
-        del dct['name']
+        del dct["name"]
         if self.function is None:
-            del dct['function']
+            del dct["function"]
         return dct
 
     @commentable
@@ -117,17 +125,19 @@ class Cast(DbObject):
         with_clause = "\n    WITH"
         if self.function is not None:
             with_clause += " FUNCTION %s" % self.function
-        elif self.method == 'inout':
+        elif self.method == "inout":
             with_clause += " INOUT"
         else:
             with_clause += "OUT FUNCTION"
-        as_clause = ''
-        if self.context == 'assignment':
+        as_clause = ""
+        if self.context == "assignment":
             as_clause = "\n    AS ASSIGNMENT"
-        elif self.context == 'implicit':
+        elif self.context == "implicit":
             as_clause = "\n    AS IMPLICIT"
-        return ["CREATE CAST (%s AS %s)%s%s" % (
-                self.source, self.target, with_clause, as_clause)]
+        return [
+            "CREATE CAST (%s AS %s)%s%s"
+            % (self.source, self.target, with_clause, as_clause)
+        ]
 
     def get_implied_deps(self, db):
         deps = super(Cast, self).get_implied_deps(db)
@@ -142,7 +152,7 @@ class Cast(DbObject):
             deps.add(target)
 
         # The function instead we expect it exists
-        if self.method == 'function':
+        if self.method == "function":
             f = db.functions.find(*split_func_args(self.function))
             if f is not None:
                 deps.add(f)
@@ -162,12 +172,15 @@ class CastDict(DbObjectDict):
         :param newdb: collection of dictionaries defining the database
         """
         for key in incasts:
-            if not key.startswith('cast (') or ' AS ' not in key.upper() \
-                    or key[-1:] != ')':
+            if (
+                not key.startswith("cast (")
+                or " AS " not in key.upper()
+                or key[-1:] != ")"
+            ):
                 raise KeyError("Unrecognized object type: %s" % key)
-            asloc = key.upper().find(' AS ')
+            asloc = key.upper().find(" AS ")
             src = key[6:asloc]
-            trg = key[asloc + 4:-1]
+            trg = key[asloc + 4 : -1]
             inobj = incasts[key]
             if not inobj:
                 raise ValueError("Cast '%s' has no specification" % key[5:])

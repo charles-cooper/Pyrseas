@@ -14,26 +14,34 @@ from pyrseas.dbobject.trigger import Trigger
 class CfgTrigger(DbAugment):
     "A configuration trigger definition"
 
-    keylist = ['name']
+    keylist = ["name"]
 
     def apply(self, table):
         """Create a trigger for the table passed in.
 
         :param table: table on which the trigger will be created
         """
-        newtrg = Trigger(self.name, table.schema, table.name,
-                         getattr(self, 'description', None),
-                         self.procedure, self.timing, self.level, self.events)
+        newtrg = Trigger(
+            self.name,
+            table.schema,
+            table.name,
+            getattr(self, "description", None),
+            self.procedure,
+            self.timing,
+            self.level,
+            self.events,
+        )
         newtrg._iscfg = True
-        if newtrg.name.startswith('{{table_name}}'):
+        if newtrg.name.startswith("{{table_name}}"):
             newtrg.name = newtrg.name.replace(newtrg.name[:14], table.name)
         newtrg._table = table
-        if not hasattr(table, 'triggers'):
+        if not hasattr(table, "triggers"):
             table.triggers = {}
-        if hasattr(newtrg, 'procedure'):
-            if newtrg.procedure.startswith('{{table_name}}'):
+        if hasattr(newtrg, "procedure"):
+            if newtrg.procedure.startswith("{{table_name}}"):
                 newtrg.procedure = newtrg.procedure.replace(
-                    newtrg.procedure[:14], table.name)
+                    newtrg.procedure[:14], table.name
+                )
             (sch, fnc) = split_schema_obj(newtrg.procedure)
             if sch != table.schema:
                 newtrg.procedure = "%s.%s" % (table.schema, fnc)

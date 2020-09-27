@@ -1,3 +1,4 @@
 PyYAML>=3.13
 psycopg2>=2.7
 pgdbconn>=0.8.0
+black

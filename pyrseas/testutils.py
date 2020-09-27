@@ -19,13 +19,17 @@ from pyrseas.lib.dbutils import pgexecute, PostgresDb
 
 def fix_indent(stmt):
     "Fix specifications which are in a new line with indentation"
-    return stmt.replace('   ', ' ').replace('  ', ' ').replace('\n ', ' '). \
-        replace('( ', '(')
+    return (
+        stmt.replace("   ", " ")
+        .replace("  ", " ")
+        .replace("\n ", " ")
+        .replace("( ", "(")
+    )
 
 
-def remove_temp_files(tmpdir, prefix=''):
+def remove_temp_files(tmpdir, prefix=""):
     "Remove files in a temporary directory"
-    for tfile in glob.glob(os.path.join(tmpdir, prefix + '*')):
+    for tfile in glob.glob(os.path.join(tmpdir, prefix + "*")):
         if os.path.isdir(tfile):
             for entry in os.listdir(tfile):
                 entry = os.path.join(tmpdir, tfile, entry)
@@ -40,14 +44,15 @@ def remove_temp_files(tmpdir, prefix=''):
             os.remove(tfile)
 
 
-TEST_DBNAME = os.environ.get("PYRSEAS_TEST_DB", 'pyrseas_testdb')
+TEST_DBNAME = os.environ.get("PYRSEAS_TEST_DB", "pyrseas_testdb")
 TEST_USER = os.environ.get("PYRSEAS_TEST_USER", getpass.getuser())
 TEST_HOST = os.environ.get("PYRSEAS_TEST_HOST", None)
 TEST_PORT = int(os.environ.get("PYRSEAS_TEST_PORT", 5432))
-PG_OWNER = 'postgres'
-TEST_DIR = os.path.join(tempfile.gettempdir(),
-                        os.environ.get("PYRSEAS_TEST_DIR", 'pyrseas_test'))
-TRAVIS = (os.environ.get("TRAVIS", 'false') == 'true')
+PG_OWNER = "postgres"
+TEST_DIR = os.path.join(
+    tempfile.gettempdir(), os.environ.get("PYRSEAS_TEST_DIR", "pyrseas_test")
+)
+TRAVIS = os.environ.get("TRAVIS", "false") == "true"
 
 
 class PgTestDb(PostgresDb):
@@ -62,12 +67,13 @@ class PgTestDb(PostgresDb):
             """SELECT nspname FROM pg_namespace
                WHERE nspname != 'information_schema'
                      AND substring(nspname for 3) != 'pg_'
-               ORDER BY nspname""")
+               ORDER BY nspname""",
+        )
         objs = curs.fetchall()
         curs.close()
         self.conn.rollback()
         for obj in objs:
-                self.execute(STD_DROP % ('SCHEMA', obj[0]))
+            self.execute(STD_DROP % ("SCHEMA", obj[0]))
         self.conn.commit()
 
         # Extensions
@@ -76,12 +82,13 @@ class PgTestDb(PostgresDb):
             """SELECT extname FROM pg_extension
                       JOIN pg_namespace n ON (extnamespace = n.oid)
                WHERE nspname != 'information_schema'
-               AND extname != 'plpgsql'""")
+               AND extname != 'plpgsql'""",
+        )
         exts = curs.fetchall()
         curs.close()
         self.conn.rollback()
         for ext in exts:
-            self.execute(STD_DROP % ('EXTENSION', ext[0]))
+            self.execute(STD_DROP % ("EXTENSION", ext[0]))
         self.conn.commit()
 
         # User mappings
@@ -90,13 +97,16 @@ class PgTestDb(PostgresDb):
             """SELECT CASE umuser WHEN 0 THEN 'PUBLIC' ELSE
                   pg_get_userbyid(umuser) END AS username, s.srvname
                FROM pg_user_mappings u
-                  JOIN pg_foreign_server s ON (srvid = s.oid)""")
+                  JOIN pg_foreign_server s ON (srvid = s.oid)""",
+        )
         umaps = curs.fetchall()
         curs.close()
         self.conn.rollback()
         for ump in umaps:
-            self.execute('DROP USER MAPPING IF EXISTS FOR "%s" SERVER "%s"' % (
-                ump[0], ump[1]))
+            self.execute(
+                'DROP USER MAPPING IF EXISTS FOR "%s" SERVER "%s"'
+                % (ump[0], ump[1])
+            )
         self.conn.commit()
 
         # Servers
@@ -105,17 +115,18 @@ class PgTestDb(PostgresDb):
         curs.close()
         self.conn.rollback()
         for srv in servs:
-            self.execute(STD_DROP % ('SERVER', srv[0]))
+            self.execute(STD_DROP % ("SERVER", srv[0]))
         self.conn.commit()
 
         # Foreign data wrappers
-        curs = pgexecute(self.conn,
-                         "SELECT fdwname FROM pg_foreign_data_wrapper")
+        curs = pgexecute(
+            self.conn, "SELECT fdwname FROM pg_foreign_data_wrapper"
+        )
         fdws = curs.fetchall()
         curs.close()
         self.conn.rollback()
         for fdw in fdws:
-            self.execute(STD_DROP % ('FOREIGN DATA WRAPPER', fdw[0]))
+            self.execute(STD_DROP % ("FOREIGN DATA WRAPPER", fdw[0]))
         self.conn.commit()
 
         # Create default schema
@@ -125,16 +136,20 @@ class PgTestDb(PostgresDb):
 
     def is_plpgsql_installed(self):
         "Is PL/pgSQL installed?"
-        curs = pgexecute(self.conn,
-                         "SELECT 1 FROM pg_language WHERE lanname = 'plpgsql'")
+        curs = pgexecute(
+            self.conn, "SELECT 1 FROM pg_language WHERE lanname = 'plpgsql'"
+        )
         row = curs.fetchone()
         curs.close()
         return row and True
 
     def is_superuser(self):
         "Is current user a superuser?"
-        curs = pgexecute(self.conn, "SELECT 1 FROM pg_roles WHERE rolsuper "
-                         "AND rolname = CURRENT_USER ")
+        curs = pgexecute(
+            self.conn,
+            "SELECT 1 FROM pg_roles WHERE rolsuper "
+            "AND rolname = CURRENT_USER ",
+        )
         row = curs.fetchone()
         curs.close()
         return row and True
@@ -153,14 +168,14 @@ class PyrseasTestCase(TestCase):
     def setUp(self):
         self.db = _connect_clear(TEST_DBNAME)
         self.cfg = Config(sys_only=True)
-        if 'database' not in self.cfg:
+        if "database" not in self.cfg:
             self.cfg.update(database={})
-        dbc = self.cfg['database']
-        dbc['dbname'] = self.db.name
-        dbc['username'] = self.db.user
-        dbc['password'] = None
-        dbc['host'] = self.db.host
-        dbc['port'] = self.db.port
+        dbc = self.cfg["database"]
+        dbc["dbname"] = self.db.name
+        dbc["username"] = self.db.user
+        dbc["password"] = None
+        dbc["host"] = self.db.host
+        dbc["port"] = self.db.port
 
     def tearDown(self):
         self.db.close()
@@ -170,10 +185,11 @@ class PyrseasTestCase(TestCase):
         return Database(self.cfg)
 
     def config_options(self, **kwargs):
-        class Opts():
+        class Opts:
             def __init__(self, **kwargs):
                 [setattr(self, opt, val) for opt, val in list(kwargs.items())]
-        self.cfg['options'] = Opts(**kwargs)
+
+        self.cfg["options"] = Opts(**kwargs)
 
 
 class DatabaseToMapTestCase(PyrseasTestCase):
@@ -181,8 +197,17 @@ class DatabaseToMapTestCase(PyrseasTestCase):
 
     superuser = False
 
-    def to_map(self, stmts, config={}, schemas=[], tables=[], no_owner=True,
-               no_privs=True, superuser=False, multiple_files=False):
+    def to_map(
+        self,
+        stmts,
+        config={},
+        schemas=[],
+        tables=[],
+        no_owner=True,
+        no_privs=True,
+        superuser=False,
+        multiple_files=False,
+    ):
         """Execute statements and return a database map.
 
         :param stmts: list of SQL statements to execute
@@ -201,13 +226,32 @@ class DatabaseToMapTestCase(PyrseasTestCase):
             self.db.execute(stmt)
         self.db.conn.commit()
         if multiple_files:
-            self.cfg.merge({'files': {'metadata_path': os.path.join(
-                            TEST_DIR, self.cfg['repository']['metadata'])}})
-        if 'datacopy' in config:
-            self.cfg.merge({'files': {'data_path': os.path.join(
-                            TEST_DIR, self.cfg['repository']['data'])}})
-        self.config_options(schemas=schemas, tables=tables, no_owner=no_owner,
-                            no_privs=no_privs, multiple_files=multiple_files)
+            self.cfg.merge(
+                {
+                    "files": {
+                        "metadata_path": os.path.join(
+                            TEST_DIR, self.cfg["repository"]["metadata"]
+                        )
+                    }
+                }
+            )
+        if "datacopy" in config:
+            self.cfg.merge(
+                {
+                    "files": {
+                        "data_path": os.path.join(
+                            TEST_DIR, self.cfg["repository"]["data"]
+                        )
+                    }
+                }
+            )
+        self.config_options(
+            schemas=schemas,
+            tables=tables,
+            no_owner=no_owner,
+            no_privs=no_privs,
+            multiple_files=multiple_files,
+        )
         self.cfg.merge(config)
         return self.database().to_map()
 
@@ -218,8 +262,12 @@ class DatabaseToMapTestCase(PyrseasTestCase):
         :param subdir: name of a subdirectory where the file is located
         :return: YAML dictionary
         """
-        with open(os.path.join(self.cfg['files']['metadata_path'],
-                               subdir or '', filename), 'r') as f:
+        with open(
+            os.path.join(
+                self.cfg["files"]["metadata_path"], subdir or "", filename
+            ),
+            "r",
+        ) as f:
             inmap = f.read()
         return yaml.safe_load(inmap)
 
@@ -230,12 +278,17 @@ class DatabaseToMapTestCase(PyrseasTestCase):
     def sort_privileges(data):
         try:
             sorted_privlist = []
-            for sortedItem in sorted([list(i.keys())[0]
-                                      for i in data['privileges']]):
+            for sortedItem in sorted(
+                [list(i.keys())[0] for i in data["privileges"]]
+            ):
                 sorted_privlist.append(
-                    [item for item in data['privileges']
-                     if list(item.keys())[0] == sortedItem][0])
-            data['privileges'] = sorted_privlist
+                    [
+                        item
+                        for item in data["privileges"]
+                        if list(item.keys())[0] == sortedItem
+                    ][0]
+                )
+            data["privileges"] = sorted_privlist
         finally:
             return data
 
@@ -245,8 +298,16 @@ class InputMapToSqlTestCase(PyrseasTestCase):
 
     superuser = False
 
-    def to_sql(self, inmap, stmts=None, config={}, superuser=False, schemas=[],
-               revert=False, quote_reserved=False):
+    def to_sql(
+        self,
+        inmap,
+        stmts=None,
+        config={},
+        superuser=False,
+        schemas=[],
+        revert=False,
+        quote_reserved=False,
+    ):
         """Execute statements and compare database to input map.
 
         :param inmap: dictionary defining target database
@@ -265,36 +326,46 @@ class InputMapToSqlTestCase(PyrseasTestCase):
                 self.db.execute(stmt)
             self.db.conn.commit()
 
-        if 'datacopy' in config:
-            self.cfg.merge({'files': {'data_path': os.path.join(
-                            TEST_DIR, self.cfg['repository']['data'])}})
+        if "datacopy" in config:
+            self.cfg.merge(
+                {
+                    "files": {
+                        "data_path": os.path.join(
+                            TEST_DIR, self.cfg["repository"]["data"]
+                        )
+                    }
+                }
+            )
         self.config_options(schemas=schemas, revert=revert),
         self.cfg.merge(config)
         return self.database().diff_map(inmap, quote_reserved=quote_reserved)
 
     def std_map(self, plpgsql_installed=False):
         "Return a standard schema map for the default database"
-        base = {'schema sd': {
-                'owner': self.db.user,
-                'privileges': []}}
-        base.update({'extension plpgsql': {
-            'schema': 'pg_catalog', 'owner': PG_OWNER,
-            'description': "PL/pgSQL procedural language"}})
+        base = {"schema sd": {"owner": self.db.user, "privileges": []}}
+        base.update(
+            {
+                "extension plpgsql": {
+                    "schema": "pg_catalog",
+                    "owner": PG_OWNER,
+                    "description": "PL/pgSQL procedural language",
+                }
+            }
+        )
         return base
 
 
-TEST_DBNAME_SRC = os.environ.get("PYRSEAS_TEST_DB_SRC", 'pyrseas_testdb_src')
+TEST_DBNAME_SRC = os.environ.get("PYRSEAS_TEST_DB_SRC", "pyrseas_testdb_src")
 
 
 class DbMigrateTestCase(TestCase):
-
     @classmethod
     def setUpClass(cls):
         cls.srcdb = _connect_clear(TEST_DBNAME_SRC)
         cls.db = _connect_clear(TEST_DBNAME)
         progdir = os.path.abspath(os.path.dirname(__file__))
-        cls.dbtoyaml = os.path.join(progdir, 'dbtoyaml.py')
-        cls.yamltodb = os.path.join(progdir, 'yamltodb.py')
+        cls.dbtoyaml = os.path.join(progdir, "dbtoyaml.py")
+        cls.yamltodb = os.path.join(progdir, "yamltodb.py")
         cls.tmpdir = TEST_DIR
         if not os.path.exists(cls.tmpdir):
             os.mkdir(cls.tmpdir)
@@ -302,8 +373,7 @@ class DbMigrateTestCase(TestCase):
     def add_public_schema(self, db):
         db.execute("CREATE SCHEMA IF NOT EXISTS public")
         db.execute("ALTER SCHEMA public OWNER TO postgres")
-        db.execute("COMMENT ON SCHEMA public IS "
-                         "'standard public schema'")
+        db.execute("COMMENT ON SCHEMA public IS " "'standard public schema'")
         db.execute("DROP SCHEMA IF EXISTS sd")
         db.conn.commit()
 
@@ -316,13 +386,17 @@ class DbMigrateTestCase(TestCase):
         remove_temp_files(cls.tmpdir, prefix)
 
     def execute_script(self, path, scriptname):
-        scriptfile = os.path.join(os.path.abspath(os.path.dirname(path)),
-                                  scriptname)
+        scriptfile = os.path.join(
+            os.path.abspath(os.path.dirname(path)), scriptname
+        )
         lines = []
-        with open(scriptfile, 'r') as fd:
-            lines = [line.strip() for line in fd if line != '\n' and
-                     not line.startswith('--')]
-        self.srcdb.execute_commit(' '.join(lines))
+        with open(scriptfile, "r") as fd:
+            lines = [
+                line.strip()
+                for line in fd
+                if line != "\n" and not line.startswith("--")
+            ]
+        self.srcdb.execute_commit(" ".join(lines))
 
     def tempfile_path(self, filename):
         return os.path.join(self.tmpdir, filename)
@@ -349,53 +423,56 @@ class DbMigrateTestCase(TestCase):
         :param srcdb: run against source database
         """
         if TRAVIS:
-            pg_dumpver = 'pg_dump'
+            pg_dumpver = "pg_dump"
         else:
             v = self.srcdb._version
-            pg_dumpver = "pg_dump%d%d" % (v // 10000,
-                                          (v - v // 10000 * 10000) // 100)
-            if sys.platform == 'win32':
-                pg_dumpver += '.bat'
+            pg_dumpver = "pg_dump%d%d" % (
+                v // 10000,
+                (v - v // 10000 * 10000) // 100,
+            )
+            if sys.platform == "win32":
+                pg_dumpver += ".bat"
         dbname = self.srcdb.name if srcdb else self.db.name
         args = [pg_dumpver]
         args.extend(self._db_params())
         if not incldata:
-            args.extend(['-s'])
-        args.extend(['-f', dumpfile, dbname])
+            args.extend(["-s"])
+        args.extend(["-f", dumpfile, dbname])
         subprocess.check_call(args)
 
     def invoke(self, args):
         args.insert(0, sys.executable)
-        path = [os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))]
-        path.append(os.path.abspath(os.path.join(os.path.dirname(
-                    yaml.__file__), '..')))
+        path = [os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))]
+        path.append(
+            os.path.abspath(os.path.join(os.path.dirname(yaml.__file__), ".."))
+        )
         env = os.environ.copy()
-        env.update({'PYTHONPATH': os.pathsep.join(path)})
+        env.update({"PYTHONPATH": os.pathsep.join(path)})
         subprocess.check_call(args, env=env)
 
-    def create_yaml(self, yamlfile='', srcdb=False):
+    def create_yaml(self, yamlfile="", srcdb=False):
         dbname = self.srcdb.name if srcdb else self.db.name
         args = [self.dbtoyaml]
         args.extend(self._db_params())
         if yamlfile:
-            args.extend(['-o', yamlfile, dbname])
+            args.extend(["-o", yamlfile, dbname])
         else:
-            args.extend(['-r', TEST_DIR, '-m', dbname])
+            args.extend(["-r", TEST_DIR, "-m", dbname])
         self.invoke(args)
 
     def migrate_target(self, yamlfile, outfile):
         args = [self.yamltodb]
         args.extend(self._db_params())
         if yamlfile:
-            args.extend(['-u', '-o', outfile, self.db.name, yamlfile])
+            args.extend(["-u", "-o", outfile, self.db.name, yamlfile])
         else:
-            args.extend(['-u', '-o', outfile, '-r', TEST_DIR, '-m',
-                         self.db.name])
+            args.extend(
+                ["-u", "-o", outfile, "-r", TEST_DIR, "-m", self.db.name]
+            )
         self.invoke(args)
 
 
 class AugmentToMapTestCase(PyrseasTestCase):
-
     def to_map(self, stmts, augmap):
         """Apply an augment map and return a map of the updated database.
 
@@ -406,7 +483,12 @@ class AugmentToMapTestCase(PyrseasTestCase):
         for stmt in stmts:
             self.db.execute(stmt)
         self.db.conn.commit()
-        self.config_options(schemas=[], tables=[], no_owner=True,
-                            no_privs=True, multiple_files=False)
+        self.config_options(
+            schemas=[],
+            tables=[],
+            no_owner=True,
+            no_privs=True,
+            multiple_files=False,
+        )
         db = AugmentDatabase(self.cfg)
         return db.apply(augmap)

@@ -11,13 +11,18 @@ if PY2:
 
     class MultiLineStr(unicode):
         """ Marker for multiline strings"""
+
+
 else:
+
     class MultiLineStr(str):
         """ Marker for multiline strings"""
 
 
 def MultiLineStr_presenter(dumper, data):
-    return dumper.represent_scalar('tag:yaml.org,2002:str', data, style='|')
+    return dumper.represent_scalar("tag:yaml.org,2002:str", data, style="|")
+
+
 add_representer(MultiLineStr, MultiLineStr_presenter)
 
 

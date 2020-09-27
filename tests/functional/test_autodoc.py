@@ -8,7 +8,6 @@ from pyrseas.testutils import DbMigrateTestCase
 
 
 class AutodocTestCase(DbMigrateTestCase):
-
     def setUp(self):
         super(DbMigrateTestCase, self).setUp()
         self.add_public_schema(self.srcdb)
@@ -16,37 +15,37 @@ class AutodocTestCase(DbMigrateTestCase):
 
     @classmethod
     def tearDown(cls):
-        cls.remove_tempfiles('autodoc')
-        cls.remove_tempfiles('empty')
+        cls.remove_tempfiles("autodoc")
+        cls.remove_tempfiles("empty")
 
     def test_autodoc(self):
         # Create the source schema
-        self.execute_script(__file__, 'autodoc-schema.sql')
+        self.execute_script(__file__, "autodoc-schema.sql")
 
         # Run pg_dump against source database
-        srcdump = self.tempfile_path('autodoc-src.dump')
+        srcdump = self.tempfile_path("autodoc-src.dump")
         self.run_pg_dump(srcdump, True)
 
         # Create source YAML file
-        srcyaml = self.tempfile_path('autodoc-src.yaml')
+        srcyaml = self.tempfile_path("autodoc-src.yaml")
         self.create_yaml(srcyaml, True)
 
         # Run pg_dump/dbtoyaml against empty target database
-        emptydump = self.tempfile_path('empty.dump')
+        emptydump = self.tempfile_path("empty.dump")
         self.run_pg_dump(emptydump)
-        emptyyaml = self.tempfile_path('empty.yaml')
+        emptyyaml = self.tempfile_path("empty.yaml")
         self.create_yaml(emptyyaml)
 
         # Migrate the target database
-        targsql = self.tempfile_path('autodoc.sql')
+        targsql = self.tempfile_path("autodoc.sql")
         self.migrate_target(srcyaml, targsql)
 
         # Run pg_dump against target database
-        targdump = self.tempfile_path('autodoc.dump')
+        targdump = self.tempfile_path("autodoc.dump")
         self.run_pg_dump(targdump)
 
         # Create target YAML file
-        targyaml = self.tempfile_path('autodoc.yaml')
+        targyaml = self.tempfile_path("autodoc.yaml")
         self.create_yaml(targyaml)
 
         # diff autodoc-src.dump against autodoc.dump

@@ -11,15 +11,15 @@ CFG_FILE = os.environ.get("PYRSEAS_CONFIG_FILE", "config.yaml")
 
 
 def _home_dir():
-    if sys.platform == 'win32':
-        dir = os.getenv('APPDATA', '')
+    if sys.platform == "win32":
+        dir = os.getenv("APPDATA", "")
     else:
-        dir = os.path.join(os.environ['HOME'], '.config')
+        dir = os.path.join(os.environ["HOME"], ".config")
     return os.path.abspath(dir)
 
 
 def _load_cfg(cfgdir):
-    cfgpath = ''
+    cfgpath = ""
     cfg = {}
     if cfgdir is not None:
         if os.path.isdir(cfgdir):
@@ -36,15 +36,25 @@ class Config(dict):
     "A configuration dictionary"
 
     def __init__(self, sys_only=False):
-        self.update(_load_cfg(
-            os.environ.get("PYRSEAS_SYS_CONFIG", os.path.abspath(os.path.join(
-                           os.path.dirname(__file__))))))
+        self.update(
+            _load_cfg(
+                os.environ.get(
+                    "PYRSEAS_SYS_CONFIG",
+                    os.path.abspath(os.path.join(os.path.dirname(__file__))),
+                )
+            )
+        )
         if sys_only:
             return
-        self.merge(_load_cfg(os.environ.get("PYRSEAS_USER_CONFIG",
-                             os.path.join(_home_dir(), 'pyrseas'))))
-        if 'repository' in self and 'path' in self['repository']:
-            cfgpath = self['repository']['path']
+        self.merge(
+            _load_cfg(
+                os.environ.get(
+                    "PYRSEAS_USER_CONFIG", os.path.join(_home_dir(), "pyrseas")
+                )
+            )
+        )
+        if "repository" in self and "path" in self["repository"]:
+            cfgpath = self["repository"]["path"]
         else:
             cfgpath = os.getcwd()
         self.merge(_load_cfg(cfgpath))

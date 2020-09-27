@@ -18,10 +18,10 @@ from .privileges import privileges_to_map, add_grant, diff_privs
 from .privileges import privileges_from_map
 
 
-VALID_FIRST_CHARS = string.ascii_lowercase + '_'
-VALID_CHARS = string.ascii_lowercase + string.digits + '_$'
+VALID_FIRST_CHARS = string.ascii_lowercase + "_"
+VALID_CHARS = string.ascii_lowercase + string.digits + "_$"
 RESERVED_WORDS = []
-NON_FILENAME_CHARS = re.compile(r'\W', re.U)
+NON_FILENAME_CHARS = re.compile(r"\W", re.U)
 MAX_PG_IDENT_LEN = 63
 MAX_IDENT_LEN = int(os.environ.get("PYRSEAS_MAX_IDENT_LEN", 32))
 
@@ -34,9 +34,13 @@ def fetch_reserved_words(db):
     global RESERVED_WORDS
 
     if len(RESERVED_WORDS) == 0:
-        RESERVED_WORDS = [word[0] for word in
-                          db.fetchall("""SELECT word FROM pg_get_keywords()
-                                         WHERE catcode != 'U'""")]
+        RESERVED_WORDS = [
+            word[0]
+            for word in db.fetchall(
+                """SELECT word FROM pg_get_keywords()
+                                         WHERE catcode != 'U'"""
+            )
+        ]
 
 
 def quote_id(name):
@@ -65,6 +69,7 @@ def split_schema_obj(obj, sch=None):
     :param sch: schema name (defaults to 'pg_catalog')
     :return: tuple
     """
+
     def undelim(ident):
         if ident[0] == '"' and ident[-1] == '"':
             ident = ident[1:-1]
@@ -72,7 +77,7 @@ def split_schema_obj(obj, sch=None):
 
     qualsch = sch
     if sch is None:
-        qualsch = 'pg_catalog'
+        qualsch = "pg_catalog"
     if obj[0] == '"' and obj[-1] == '"':
         if '"."' in obj:
             (qualsch, obj) = obj.split('"."')
@@ -82,8 +87,8 @@ def split_schema_obj(obj, sch=None):
             obj = obj[1:-1]
     else:
         # TODO: properly handle functions
-        if '.' in obj and '(' not in obj:
-            (qualsch, obj) = obj.split('.')
+        if "." in obj and "(" not in obj:
+            (qualsch, obj) = obj.split(".")
     if sch != qualsch:
         sch = qualsch
     return (undelim(sch), undelim(obj))
@@ -97,52 +102,58 @@ def split_func_args(obj):
 
     TODO: make it safer against pathologic input (names containing' '( and ',')
     """
-    tokens = obj.split('(')
-    if len(tokens) != 2 or not tokens[1].endswith(')'):
+    tokens = obj.split("(")
+    if len(tokens) != 2 or not tokens[1].endswith(")"):
         raise ValueError("not a valid function signature: '%s'" % obj)
     name = tokens[0]
-    args = [arg.strip() for arg in tokens[1][:-1].split(',')]
+    args = [arg.strip() for arg in tokens[1][:-1].split(",")]
     return name, args
 
 
 def commentable(func):
     """Decorator to add comments to various objects"""
+
     @wraps(func)
     def add_comment(obj, *args, **kwargs):
         stmts = func(obj, *args, **kwargs)
         if obj.description is not None:
             stmts.append(obj.comment())
         return stmts
+
     return add_comment
 
 
 def grantable(func):
     """Decorator to add GRANT to various objects"""
+
     @wraps(func)
     def grant(obj, *args, **kwargs):
         stmts = func(obj, *args, **kwargs)
-        if hasattr(obj, 'privileges'):
+        if hasattr(obj, "privileges"):
             for priv in obj.privileges:
                 stmts.append(add_grant(obj, priv))
         return stmts
+
     return grant
 
 
 def ownable(func):
     """Decorator to add ALTER OWNER to various objects"""
+
     @wraps(func)
     def add_alter(obj, *args, **kwargs):
         stmts = func(obj, *args, **kwargs)
-        if hasattr(obj, 'owner'):
+        if hasattr(obj, "owner"):
             stmts.append(obj.alter_owner())
         return stmts
+
     return add_alter
 
 
 class DbObject(object):
     "A single object in a database catalog, e.g., a schema, a table, a column"
 
-    keylist = ['name']
+    keylist = ["name"]
     """List of attributes that uniquely identify the object in the catalogs
 
     See description of :meth:`key` for further details.
@@ -163,7 +174,7 @@ class DbObject(object):
     """The name of the system catalog where these objects live
     """
 
-    allprivs = ''
+    allprivs = ""
 
     def __init__(self, name, description=None, **attrs):
         """Initialize the catalog object from a dictionary of attributes
@@ -186,16 +197,16 @@ class DbObject(object):
     def _init_own_privs(self, owner=None, privileges=[]):
         """Initialize owner and privileges attributes
 
-        :param owner: name of user that owns the object
--       :param privileges: privileges on object
+                :param owner: name of user that owns the object
+        -       :param privileges: privileges on object
 
-        The vast majority of Postgres database objects have owner and
-        privileges attributes.  Hence all base DbObject instances have
-        those attributes.  This method allows separate initialization.
+                The vast majority of Postgres database objects have owner and
+                privileges attributes.  Hence all base DbObject instances have
+                those attributes.  This method allows separate initialization.
         """
         self.owner = owner
         if isinstance(privileges, strtypes):
-            privileges = privileges.split(',')
+            privileges = privileges.split(",")
         self.privileges = privileges or []
 
     def __repr__(self):
@@ -247,9 +258,9 @@ class DbObject(object):
         need the signature, so they override this implementation.
 
         """
-        return '%s %s' % (self.objtype.lower(), self.name)
+        return "%s %s" % (self.objtype.lower(), self.name)
 
-    def extern_filename(self, ext='yaml', truncate=False):
+    def extern_filename(self, ext="yaml", truncate=False):
         """Return a filename to be used to output external files
 
         :param ext: file extension
@@ -279,17 +290,20 @@ class DbObject(object):
             """
             if objid:
                 if PY2:
-                    objid = objid.decode('utf_8')
-                filename = '%s.%.*s.%s' % (
-                    objtype, max_len, re.sub(NON_FILENAME_CHARS, '_', objid),
-                    ext)
+                    objid = objid.decode("utf_8")
+                filename = "%s.%.*s.%s" % (
+                    objtype,
+                    max_len,
+                    re.sub(NON_FILENAME_CHARS, "_", objid),
+                    ext,
+                )
                 if PY2:
-                    filename = filename.encode('utf_8')
+                    filename = filename.encode("utf_8")
             else:
-                filename = '%s.%s' % (objtype.replace(' ', '_'), ext)
+                filename = "%s.%s" % (objtype.replace(" ", "_"), ext)
             return filename.lower()
 
-        if hasattr(self, 'single_extern_file') and self.single_extern_file:
+        if hasattr(self, "single_extern_file") and self.single_extern_file:
             return xfrm_filename(self.objtype)
 
         return xfrm_filename(self.objtype, self.name)
@@ -338,6 +352,7 @@ class DbObject(object):
         or JSON object.
         """
         import copy
+
         if deepcopy:
             dct = copy.deepcopy(self.__dict__)
         else:
@@ -345,26 +360,26 @@ class DbObject(object):
         for key in self.keylist:
             del dct[key]
         if self.description is None:
-            del dct['description']
+            del dct["description"]
         if no_owner or self.owner is None:
-            del dct['owner']
+            del dct["owner"]
         if len(self.privileges) == 0 or no_privs:
-            del dct['privileges']
+            del dct["privileges"]
         else:
-            dct['privileges'] = self.map_privs()
+            dct["privileges"] = self.map_privs()
 
         # Never dump the oid
-        dct.pop('oid', None)
+        dct.pop("oid", None)
 
         # Only dump dependencies that can't be inferred from the context
-        deps = set(dct.pop('depends_on', ()))
+        deps = set(dct.pop("depends_on", ()))
         deps -= self.get_implied_deps(db)
         if deps:
-            dct['depends_on'] = sorted([dep.extern_key() for dep in deps])
+            dct["depends_on"] = sorted([dep.extern_key() for dep in deps])
 
         # Drop any private attributes
         for k in list(dct.keys()):
-            if k.startswith('_'):
+            if k.startswith("_"):
                 del dct[k]
 
         return dct
@@ -377,12 +392,18 @@ class DbObject(object):
         privlist = []
         for prv in self.privileges:
             if prv:
-                privlist.append(privileges_to_map(prv, self.allprivs,
-                                                  self.owner))
+                privlist.append(
+                    privileges_to_map(prv, self.allprivs, self.owner)
+                )
         sorted_privlist = []
         for sortedItem in sorted([list(i.keys())[0] for i in privlist]):
-            sorted_privlist.append([item for item in privlist
-                                    if list(item.keys())[0] == sortedItem][0])
+            sorted_privlist.append(
+                [
+                    item
+                    for item in privlist
+                    if list(item.keys())[0] == sortedItem
+                ][0]
+            )
         return sorted_privlist
 
     def set_oldname(self, inobj):
@@ -390,19 +411,21 @@ class DbObject(object):
 
         :param inobj: YAML map of input object
         """
-        if 'oldname' in inobj:
-            self.oldname = inobj.get('oldname')
+        if "oldname" in inobj:
+            self.oldname = inobj.get("oldname")
 
     def fix_privileges(self):
         """Adjust raw privilege information from YAML map"""
         if len(self.privileges) > 0:
             if self.owner is None:
                 raise ValueError(
-                    "%s '%s' has privileges but no owner information" % (
-                        self.objtype.capitalize(), self.name))
+                    "%s '%s' has privileges but no owner information"
+                    % (self.objtype.capitalize(), self.name)
+                )
             else:
                 self.privileges = privileges_from_map(
-                    self.privileges, self.allprivs, self.owner)
+                    self.privileges, self.allprivs, self.owner
+                )
 
     def _comment_text(self):
         """Return the text for the SQL COMMENT statement
@@ -412,7 +435,7 @@ class DbObject(object):
         if self.description is not None:
             return "'%s'" % self.description.replace("'", "''")
         else:
-            return 'NULL'
+            return "NULL"
 
     def comment(self):
         """Return SQL statement to create a COMMENT on the object
@@ -420,7 +443,10 @@ class DbObject(object):
         :return: SQL statement
         """
         return "COMMENT ON %s %s IS %s" % (
-            self.objtype, self.identifier(), self._comment_text())
+            self.objtype,
+            self.identifier(),
+            self._comment_text(),
+        )
 
     def alter_owner(self, owner=None):
         """Return ALTER statement to set the OWNER of an object
@@ -429,7 +455,10 @@ class DbObject(object):
         """
         if self.owner != owner:
             return "ALTER %s %s OWNER TO %s" % (
-                self.objtype, self.identifier(), owner or self.owner)
+                self.objtype,
+                self.identifier(),
+                owner or self.owner,
+            )
         else:
             return []
 
@@ -440,13 +469,16 @@ class DbObject(object):
         :return: SQL statement
         """
         return "ALTER %s %s RENAME TO %s" % (
-            self.objtype, quote_id(oldname), quote_id(self.name))
+            self.objtype,
+            quote_id(oldname),
+            quote_id(self.name),
+        )
 
     def create(self, dbversion=None):
         raise NotImplementedError
 
     def create_sql(self, dbversion=None):
-        if hasattr(self, 'oldname') and self.oldname is not None:
+        if hasattr(self, "oldname") and self.oldname is not None:
             return self.rename(self.oldname)
         else:
             return self.create(dbversion)
@@ -539,7 +571,7 @@ class DbObject(object):
 class DbSchemaObject(DbObject):
     "A database object that is owned by a certain schema"
 
-    def __init__(self, name, schema='public', description=None, **attrs):
+    def __init__(self, name, schema="public", description=None, **attrs):
         super(DbSchemaObject, self).__init__(name, description, **attrs)
         self.schema = schema
 
@@ -567,14 +599,14 @@ class DbSchemaObject(DbObject):
         :param objname: object name
         :return: unqualified object name
         """
-        if '.' in objname:
+        if "." in objname:
             (sch, objname) = split_schema_obj(objname, self.schema)
             assert sch == self.schema
             return objname
         else:
             return objname
 
-    def extern_filename(self, ext='yaml'):
+    def extern_filename(self, ext="yaml"):
         """Return a filename to be used to output external files
 
         :param ext: file extension
@@ -589,14 +621,17 @@ class DbSchemaObject(DbObject):
         :return: SQL statement
         """
         return "ALTER %s %s.%s RENAME TO %s" % (
-            self.objtype, quote_id(self.schema), quote_id(oldname),
-            quote_id(self.name))
+            self.objtype,
+            quote_id(self.schema),
+            quote_id(oldname),
+            quote_id(self.name),
+        )
 
     def get_implied_deps(self, db):
         deps = super(DbSchemaObject, self).get_implied_deps(db)
 
         # The schema of the object (if any) is always a dependency
-        if hasattr(self, 'schema'):
+        if hasattr(self, "schema"):
             s = db.schemas.get(self.schema)
             if s:
                 deps.add(s)
@@ -638,11 +673,11 @@ class DbObjectDict(dict):
         This is may be overriden by derived classes as needed.
         """
         for obj in self.fetch():
-            if hasattr(obj, 'options'):
+            if hasattr(obj, "options"):
                 if type(obj.options) is list:
                     obj.options = sorted(obj.options)
             self[obj.key()] = obj
-            if hasattr(obj, 'oid'):
+            if hasattr(obj, "oid"):
                 self.by_oid[obj.oid] = obj
 
     def to_map(self, db, opts):
@@ -665,8 +700,9 @@ class DbObjectDict(dict):
                 outobj = {extkey: objmap}
                 if opts.multiple_files:
                     filepath = obj.extern_filename()
-                    with open(os.path.join(opts.metadata_dir, filepath),
-                              'a') as f:
+                    with open(
+                        os.path.join(opts.metadata_dir, filepath), "a"
+                    ) as f:
                         f.write(yamldump(outobj))
                     outobj = {extkey: filepath}
                 objdict.update(outobj)

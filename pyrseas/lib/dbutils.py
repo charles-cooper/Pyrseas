@@ -13,11 +13,13 @@ from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
 
 def pgconnect(dbname, user=None, host=None, port=None):
     "Connect to a Postgres database using psycopg2"
-    user = '' if user is None else " user=%s" % user
-    host = '' if host is None else "host=%s " % host
-    port = '' if port is None else "port=%d " % port
-    return connect("%s%sdbname=%s%s" % (host, port, dbname, user),
-                   connection_factory=DictConnection)
+    user = "" if user is None else " user=%s" % user
+    host = "" if host is None else "host=%s " % host
+    port = "" if port is None else "port=%d " % port
+    return connect(
+        "%s%sdbname=%s%s" % (host, port, dbname, user),
+        connection_factory=DictConnection,
+    )
 
 
 def pgexecute(dbconn, oper, args=None):
@@ -41,7 +43,7 @@ def pgexecute_auto(dbconn, oper):
     return curs
 
 
-ADMIN_DB = os.environ.get("PG_ADMIN_DB", 'postgres')
+ADMIN_DB = os.environ.get("PG_ADMIN_DB", "postgres")
 CREATE_DDL = "CREATE DATABASE %s TEMPLATE = template0"
 
 
@@ -52,6 +54,7 @@ class PostgresDb(object):
     need to create and drop databases and other objects,
     independently.
     """
+
     def __init__(self, name, user, host, port):
         self.name = name
         self.conn = None
@@ -69,9 +72,10 @@ class PostgresDb(object):
         """
         if not self.conn:
             conn = pgconnect(ADMIN_DB, self.user, self.host, self.port)
-            curs = pgexecute(conn,
-                             "SELECT 1 FROM pg_database WHERE datname = '%s'" %
-                             self.name)
+            curs = pgexecute(
+                conn,
+                "SELECT 1 FROM pg_database WHERE datname = '%s'" % self.name,
+            )
             row = curs.fetchone()
             if not row:
                 curs.close()

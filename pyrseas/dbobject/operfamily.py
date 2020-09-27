@@ -13,12 +13,13 @@ from . import commentable, ownable, split_schema_obj
 class OperatorFamily(DbSchemaObject):
     """An operator family"""
 
-    keylist = ['schema', 'name', 'index_method']
+    keylist = ["schema", "name", "index_method"]
     single_extern_file = True
-    catalog = 'pg_opfamily'
+    catalog = "pg_opfamily"
 
-    def __init__(self, name, schema, index_method, description, owner,
-                 oid=None):
+    def __init__(
+        self, name, schema, index_method, description, owner, oid=None
+    ):
         """Initialize the operator family
 
         :param name: operator name (from opfname)
@@ -58,8 +59,12 @@ class OperatorFamily(DbSchemaObject):
         :return: operator family instance
         """
         obj = OperatorFamily(
-            name, schema.name, index_method, inobj.pop('description', None),
-            inobj.pop('owner', None))
+            name,
+            schema.name,
+            index_method,
+            inobj.pop("description", None),
+            inobj.pop("owner", None),
+        )
         obj.set_oldname(inobj)
         return obj
 
@@ -72,8 +77,11 @@ class OperatorFamily(DbSchemaObject):
 
         :return: string
         """
-        return '%s %s using %s' % (self.objtype.lower(), self.name,
-                                   self.index_method)
+        return "%s %s using %s" % (
+            self.objtype.lower(),
+            self.name,
+            self.index_method,
+        )
 
     def identifier(self):
         """Return a full identifier for an operator family object
@@ -89,8 +97,10 @@ class OperatorFamily(DbSchemaObject):
 
         :return: SQL statements
         """
-        return ["CREATE OPERATOR FAMILY %s USING %s" % (
-                self.qualname(), self.index_method)]
+        return [
+            "CREATE OPERATOR FAMILY %s USING %s"
+            % (self.qualname(), self.index_method)
+        ]
 
 
 class OperatorFamilyDict(DbObjectDict):
@@ -105,14 +115,15 @@ class OperatorFamilyDict(DbObjectDict):
         :param inopfams: YAML map defining the operator families
         """
         for key in inopfams:
-            if not key.startswith('operator family ') or ' using ' not in key:
+            if not key.startswith("operator family ") or " using " not in key:
                 raise KeyError("Unrecognized object type: %s" % key)
-            pos = key.rfind(' using ')
+            pos = key.rfind(" using ")
             opf = key[16:pos]  # 16 = len('operator family ')
-            idx = key[pos + 7:]  # 7 = len(' using ')
+            idx = key[pos + 7 :]  # 7 = len(' using ')
             inobj = inopfams[key]
             self[(schema.name, opf, idx)] = OperatorFamily.from_map(
-                opf, schema, idx, inobj)
+                opf, schema, idx, inobj
+            )
 
     def find(self, sch, obj, meth):
         schema, name = split_schema_obj(obj, sch)

@@ -25,19 +25,19 @@ def split_exprs(idx_exprs):
             continue
         if in_literal:
             continue
-        elif c == '(':
+        elif c == "(":
             level += 1
-        elif c == ')':
+        elif c == ")":
             level -= 1
-        elif c == ',' and level == 0:
+        elif c == "," and level == 0:
             splits.append((start, i))
             start = i + 1
             for s in idx_exprs[start:]:
-                if s == ' ':
+                if s == " ":
                     start += 1
                 else:
                     break
-    splits.append((start, i+1))
+    splits.append((start, i + 1))
     return [idx_exprs[start:end] for start, end in splits]
 
 
@@ -49,15 +49,28 @@ class Index(DbSchemaObject):
     at this time, Pyrseas uses the triple schema-table-index names as the
     identifier.
     """
+
     # TODO:  This should be fixed in this or a subsequent release.
 
-    keylist = ['schema', 'table', 'name']
-    catalog = 'pg_index'
+    keylist = ["schema", "table", "name"]
+    catalog = "pg_index"
 
-    def __init__(self, name, schema, table, description, unique=False,
-                 access_method='btree', keys=[], predicate=None,
-                 tablespace=None, cluster=False, keyexprs=None, defn=None,
-                 oid=None):
+    def __init__(
+        self,
+        name,
+        schema,
+        table,
+        description,
+        unique=False,
+        access_method="btree",
+        keys=[],
+        predicate=None,
+        tablespace=None,
+        cluster=False,
+        keyexprs=None,
+        defn=None,
+        oid=None,
+    ):
         """Initialize the index
 
         :param name: index name (from relname)
@@ -118,25 +131,32 @@ class Index(DbSchemaObject):
         :param inobj: YAML map of the index
         :return: Index instance
         """
-        keys = 'keys'
-        if 'columns' in inobj:
-            keys = 'columns'
-        elif 'keys' not in inobj:
+        keys = "keys"
+        if "columns" in inobj:
+            keys = "columns"
+        elif "keys" not in inobj:
             raise KeyError("Index '%s' is missing keys specification" % name)
         obj = Index(
-            name, table.schema, table.name, inobj.pop('description', None),
-            inobj.pop('unique', False), inobj.pop('access_method', 'btree'),
-            inobj.pop(keys, []), inobj.pop('predicate', None),
-            inobj.pop('tablespace', None), inobj.pop('cluster', False))
-        if 'depends_on' in inobj:
-            obj.depends_on.extend(inobj['depends_on'])
+            name,
+            table.schema,
+            table.name,
+            inobj.pop("description", None),
+            inobj.pop("unique", False),
+            inobj.pop("access_method", "btree"),
+            inobj.pop(keys, []),
+            inobj.pop("predicate", None),
+            inobj.pop("tablespace", None),
+            inobj.pop("cluster", False),
+        )
+        if "depends_on" in inobj:
+            obj.depends_on.extend(inobj["depends_on"])
         obj.set_oldname(inobj)
         return obj
 
     def _parse_keys(self, keycols, exprs, defn):
-        keydefs, _, _ = defn.partition(' WHERE ')
-        _, _, keydefs = keydefs.partition(' USING ')
-        keydefs = keydefs[keydefs.find(' (') + 2:-1]
+        keydefs, _, _ = defn.partition(" WHERE ")
+        _, _, keydefs = keydefs.partition(" USING ")
+        keydefs = keydefs[keydefs.find(" (") + 2 : -1]
         # split expressions
         if exprs is not None:
             exprs = split_exprs(exprs)
@@ -146,49 +166,55 @@ class Index(DbSchemaObject):
         for col in keycols.split():
             keyopts = []
             extra = {}
-            if col == '0':
+            if col == "0":
                 expr = exprs[i]
-                if rest and rest[0] == '(':
-                    expr = '(' + expr + ')'
-                assert(rest.startswith(expr))
+                if rest and rest[0] == "(":
+                    expr = "(" + expr + ")"
+                assert rest.startswith(expr)
                 key = expr
-                extra = {'type': 'expression'}
+                extra = {"type": "expression"}
                 explen = len(expr)
-                loc = rest[explen:].find(',')
+                loc = rest[explen:].find(",")
                 if loc == 0:
                     keyopts = []
-                    rest = rest[explen + 1:].lstrip()
+                    rest = rest[explen + 1 :].lstrip()
                 elif loc == -1:
                     keyopts = rest[explen:].split()
-                    rest = ''
+                    rest = ""
                 else:
-                    keyopts = rest[explen:explen + loc].split()
-                    rest = rest[explen + loc + 1:].lstrip()
+                    keyopts = rest[explen : explen + loc].split()
+                    rest = rest[explen + loc + 1 :].lstrip()
                 i += 1
             else:
-                loc = rest.find(',')
+                loc = rest.find(",")
                 key = rest[:loc] if loc != -1 else rest.lstrip()
                 keyopts = key.split()[1:]
                 key = key.split()[0]
-                rest = rest[loc + 1:]
+                rest = rest[loc + 1 :]
             rest = rest.lstrip()
             skipnext = False
             for j, opt in enumerate(keyopts):
                 if skipnext:
                     skipnext = False
                     continue
-                if opt.upper() not in ['COLLATE', 'ASC', 'DESC', 'NULLS',
-                                       'FIRST', 'LAST']:
+                if opt.upper() not in [
+                    "COLLATE",
+                    "ASC",
+                    "DESC",
+                    "NULLS",
+                    "FIRST",
+                    "LAST",
+                ]:
                     extra.update(opclass=opt)
                     continue
-                elif opt == 'COLLATE':
+                elif opt == "COLLATE":
                     extra.update(collation=keyopts[j + 1])
                     skipnext = True
-                elif opt == 'NULLS':
+                elif opt == "NULLS":
                     extra.update(nulls=keyopts[j + 1].lower())
                     skipnext = True
-                elif opt == 'DESC':
-                    extra.update(order='desc')
+                elif opt == "DESC":
+                    extra.update(order="desc")
             if extra:
                 key = {key: extra}
             keys.append(key)
@@ -206,14 +232,14 @@ class Index(DbSchemaObject):
             else:
                 clause = list(col.keys())[0]
                 vals = list(col.values())[0]
-                if 'collation' in vals:
-                    clause += ' COLLATE ' + vals['collation']
-                if 'opclass' in vals:
-                    clause += ' ' + vals['opclass']
-                if 'order' in vals:
-                    clause += ' ' + vals['order'].upper()
-                if 'nulls' in vals:
-                    clause += ' NULLS ' + vals['nulls'].upper()
+                if "collation" in vals:
+                    clause += " COLLATE " + vals["collation"]
+                if "opclass" in vals:
+                    clause += " " + vals["opclass"]
+                if "order" in vals:
+                    clause += " " + vals["order"].upper()
+                if "nulls" in vals:
+                    clause += " NULLS " + vals["nulls"].upper()
                 colspec.append(clause)
         return ", ".join(colspec)
 
@@ -223,15 +249,15 @@ class Index(DbSchemaObject):
         :return: dictionary
         """
         dct = super(Index, self).to_map(db)
-        if self.access_method == 'btree':
-            dct.pop('access_method')
+        if self.access_method == "btree":
+            dct.pop("access_method")
         if not self.unique:
-            dct.pop('unique')
-        for attr in ['predicate', 'tablespace']:
+            dct.pop("unique")
+        for attr in ["predicate", "tablespace"]:
             if getattr(self, attr) is None:
                 dct.pop(attr)
         if not self.cluster:
-            dct.pop('cluster')
+            dct.pop("cluster")
         return {self.name: dct}
 
     @commentable
@@ -243,25 +269,35 @@ class Index(DbSchemaObject):
         stmts = []
 
         # indexes defined by constraints are not to be dealt with as indexes
-        if getattr(self, '_for_constraint', None):
+        if getattr(self, "_for_constraint", None):
             return stmts
 
-        acc = ''
-        if self.access_method != 'btree':
-            acc = 'USING %s ' % self.access_method
-        tblspc = ''
+        acc = ""
+        if self.access_method != "btree":
+            acc = "USING %s " % self.access_method
+        tblspc = ""
         if self.tablespace is not None:
-            tblspc = '\n    TABLESPACE %s' % self.tablespace
-        pred = ''
+            tblspc = "\n    TABLESPACE %s" % self.tablespace
+        pred = ""
         if self.predicate is not None:
-            pred = '\n    WHERE %s' % self.predicate
-        stmts.append("CREATE %sINDEX %s ON %s %s(%s)%s%s" % (
-            'UNIQUE ' if self.unique else '', quote_id(self.name),
-            self.qualname(self.schema, self.table), acc,
-            self.key_expressions(), tblspc, pred))
+            pred = "\n    WHERE %s" % self.predicate
+        stmts.append(
+            "CREATE %sINDEX %s ON %s %s(%s)%s%s"
+            % (
+                "UNIQUE " if self.unique else "",
+                quote_id(self.name),
+                self.qualname(self.schema, self.table),
+                acc,
+                self.key_expressions(),
+                tblspc,
+                pred,
+            )
+        )
         if self.cluster:
-            stmts.append("CLUSTER %s USING %s" % (
-                self.qualname(self.schema, self.table), quote_id(self.name)))
+            stmts.append(
+                "CLUSTER %s USING %s"
+                % (self.qualname(self.schema, self.table), quote_id(self.name))
+            )
         return stmts
 
     def alter(self, inindex):
@@ -277,12 +313,14 @@ class Index(DbSchemaObject):
         stmts = []
 
         # indexes defined by constraints are not to be dealt with as indexes
-        if getattr(self, '_for_constraint', None):
+        if getattr(self, "_for_constraint", None):
             return stmts
 
-        if self.access_method != inindex.access_method \
-                or self.unique != inindex.unique \
-                or self.keys != inindex.keys:
+        if (
+            self.access_method != inindex.access_method
+            or self.unique != inindex.unique
+            or self.keys != inindex.keys
+        ):
             stmts.append("DROP INDEX %s" % self.qualname())
             self.access_method = inindex.access_method
             self.unique = inindex.unique
@@ -291,20 +329,29 @@ class Index(DbSchemaObject):
 
         base = "ALTER INDEX %s\n    " % self.qualname()
         if inindex.tablespace is not None:
-            if self.tablespace is not None \
-                    or self.tablespace != inindex.tablespace:
-                stmts.append(base + "SET TABLESPACE %s"
-                             % quote_id(inindex.tablespace))
+            if (
+                self.tablespace is not None
+                or self.tablespace != inindex.tablespace
+            ):
+                stmts.append(
+                    base + "SET TABLESPACE %s" % quote_id(inindex.tablespace)
+                )
         elif self.tablespace is not None:
             stmts.append(base + "SET TABLESPACE pg_default")
         if inindex.cluster:
             if not self.cluster:
-                stmts.append("CLUSTER %s USING %s" % (
-                    self.qualname(self.schema, self.table),
-                    quote_id(self.name)))
+                stmts.append(
+                    "CLUSTER %s USING %s"
+                    % (
+                        self.qualname(self.schema, self.table),
+                        quote_id(self.name),
+                    )
+                )
         elif self.cluster:
-            stmts.append("ALTER TABLE %s\n    SET WITHOUT CLUSTER" %
-                         self.qualname(self.schema, self.table))
+            stmts.append(
+                "ALTER TABLE %s\n    SET WITHOUT CLUSTER"
+                % self.qualname(self.schema, self.table)
+            )
         stmts.append(super(Index, self).alter(inindex))
         return stmts
 
@@ -314,7 +361,7 @@ class Index(DbSchemaObject):
         :return: list of SQL statements
         """
         # indexes defined by constraints are not to be dealt with as indexes
-        if getattr(self, '_for_constraint', None):
+        if getattr(self, "_for_constraint", None):
             return []
 
         return ["DROP INDEX %s" % self.identifier()]
@@ -350,4 +397,5 @@ class IndexDict(DbObjectDict):
         for i in inindexes:
             inobj = inindexes[i]
             self[(table.schema, table.name, i)] = Index.from_map(
-                i, table, inobj)
+                i, table, inobj
+            )

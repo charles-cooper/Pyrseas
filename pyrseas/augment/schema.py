@@ -14,7 +14,7 @@ class AugSchema(DbAugment):
     """A database schema definition, i.e., a named collection of tables,
     views, triggers and other schema objects."""
 
-    keylist = ['name']
+    keylist = ["name"]
 
     def apply(self, augdb):
         """Augment objects in a schema.
@@ -30,7 +30,7 @@ class AugSchema(DbAugment):
         :param func: the possibly new function
         """
         sch = self.current
-        if not hasattr(sch, 'functions'):
+        if not hasattr(sch, "functions"):
             sch.functions = {}
         if func.name not in sch.functions:
             sch.functions.update({func.name: func})
@@ -52,17 +52,17 @@ class AugSchemaDict(DbAugmentDict):
         describing the database objects.
         """
         for key in augmap:
-            (objtype, spc, sch) = key.partition(' ')
-            if spc != ' ' or objtype != 'schema':
+            (objtype, spc, sch) = key.partition(" ")
+            if spc != " " or objtype != "schema":
                 raise KeyError("Unrecognized object type: %s" % key)
             schema = self[sch] = AugSchema(name=sch)
             inschema = augmap[key]
             augtables = {}
             augfuncs = {}
             for key in inschema:
-                if key.startswith('table '):
+                if key.startswith("table "):
                     augtables.update({key: inschema[key]})
-                elif key.startswith('function '):
+                elif key.startswith("function "):
                     augfuncs.update({key: inschema[key]})
                 else:
                     raise KeyError("Expected typed object, found '%s'" % key)
@@ -76,7 +76,7 @@ class AugSchemaDict(DbAugmentDict):
         for sch in self:
             if not sch in schemas:
                 raise KeyError("Schema %s not in current database" % sch)
-            if not hasattr(self[sch], 'current'):
+            if not hasattr(self[sch], "current"):
                 self[sch].current = schemas[sch]
 
     def link_refs(self, dbtables):
@@ -92,6 +92,6 @@ class AugSchemaDict(DbAugmentDict):
             assert self[sch]
             schema = self[sch]
             if isinstance(table, AugTable):
-                if not hasattr(schema, 'tables'):
+                if not hasattr(schema, "tables"):
                     schema.tables = {}
                 schema.tables.update({tbl: table})

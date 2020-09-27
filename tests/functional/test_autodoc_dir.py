@@ -9,43 +9,42 @@ from pyrseas.testutils import DbMigrateTestCase
 
 
 class AutodocTestCase(DbMigrateTestCase):
-
     def setUp(self):
         super(DbMigrateTestCase, self).setUp()
         self.add_public_schema(self.srcdb)
         self.add_public_schema(self.db)
-        self.remove_tempfiles('metadata')
+        self.remove_tempfiles("metadata")
 
     @classmethod
     def tearDown(cls):
-        cls.remove_tempfiles('autodoc')
-        cls.remove_tempfiles('metadata')
+        cls.remove_tempfiles("autodoc")
+        cls.remove_tempfiles("metadata")
 
     def test_autodoc(self):
         # Create the source schema
-        self.execute_script(__file__, 'autodoc-schema.sql')
+        self.execute_script(__file__, "autodoc-schema.sql")
 
         # Run pg_dump against source database
-        srcdump = self.tempfile_path('autodoc-src.dump')
+        srcdump = self.tempfile_path("autodoc-src.dump")
         self.run_pg_dump(srcdump, True)
 
         # Create source YAML file and directory tree
         # Note: the single YAML file is for verification against the target,
         #       the YAML directory tree is for processing
-        srcyaml = self.tempfile_path('autodoc-src.yaml')
+        srcyaml = self.tempfile_path("autodoc-src.yaml")
         self.create_yaml(srcyaml, True)
         self.create_yaml(None, True)
 
         # Migrate the target database
-        targsql = self.tempfile_path('autodoc.sql')
+        targsql = self.tempfile_path("autodoc.sql")
         self.migrate_target(None, targsql)
 
         # Run pg_dump against target database
-        targdump = self.tempfile_path('autodoc.dump')
+        targdump = self.tempfile_path("autodoc.dump")
         self.run_pg_dump(targdump)
 
         # Create target YAML file
-        targyaml = self.tempfile_path('autodoc.yaml')
+        targyaml = self.tempfile_path("autodoc.yaml")
         self.create_yaml(targyaml)
 
         # diff autodoc-src.dump against autodoc.dump
@@ -55,24 +54,25 @@ class AutodocTestCase(DbMigrateTestCase):
 
         # Undo the changes
         self.srcdb.execute_commit(
-            "DROP SCHEMA inherit, product, store, warehouse CASCADE")
+            "DROP SCHEMA inherit, product, store, warehouse CASCADE"
+        )
         # Create source YAML file and directory tree
-        srcyaml = self.tempfile_path('autodoc-src-empty.yaml')
+        srcyaml = self.tempfile_path("autodoc-src-empty.yaml")
         self.create_yaml(srcyaml, True)
         self.create_yaml(None, True)
-        targsql = self.tempfile_path('autodoc-empty.sql')
+        targsql = self.tempfile_path("autodoc-empty.sql")
         self.migrate_target(None, targsql)
 
         # Run pg_dump against source database
-        srcdump = self.tempfile_path('autodoc-src-empty.dump')
+        srcdump = self.tempfile_path("autodoc-src-empty.dump")
         self.run_pg_dump(srcdump, True)
 
         # Run pg_dump against target database
-        targdump = self.tempfile_path('autodoc-empty.dump')
+        targdump = self.tempfile_path("autodoc-empty.dump")
         self.run_pg_dump(targdump)
 
         # Create target YAML file
-        targyaml = self.tempfile_path('autodoc-empty.yaml')
+        targyaml = self.tempfile_path("autodoc-empty.yaml")
         self.create_yaml(targyaml)
 
         # diff empty.dump against autodoc.dump

@@ -18,16 +18,16 @@ class View(DbClass):
 
     A view is identified by its schema name and view name.
     """
-    def __init__(self, name, schema, description, owner, privileges,
-                 definition,
-                 oid=None):
+
+    def __init__(
+        self, name, schema, description, owner, privileges, definition, oid=None
+    ):
         """Initialize the view
 
         :param name-privileges: see DbClass.__init__ params
         :param definition: prettified definition (from pg_getviewdef)
         """
-        super(View, self).__init__(name, schema, description, owner,
-                                   privileges)
+        super(View, self).__init__(name, schema, description, owner, privileges)
         if PY2:
             self.definition = definition
         else:
@@ -59,16 +59,26 @@ class View(DbClass):
         :return: view instance
         """
         obj = View(
-            name, schema.name, inobj.pop('description', None),
-            inobj.pop('owner', None), inobj.pop('privileges', []),
-            inobj.pop('definition', None))
+            name,
+            schema.name,
+            inobj.pop("description", None),
+            inobj.pop("owner", None),
+            inobj.pop("privileges", []),
+            inobj.pop("definition", None),
+        )
         if "columns" in inobj:
-            obj.columns = [Column(list(col.keys())[0], schema.name, name,
-                                  i + 1,
-                                  list(col.values())[0].get("type", None))
-                           for i, col in enumerate(inobj.get("columns"))]
-        if 'depends_on' in inobj:
-            obj.depends_on.extend(inobj['depends_on'])
+            obj.columns = [
+                Column(
+                    list(col.keys())[0],
+                    schema.name,
+                    name,
+                    i + 1,
+                    list(col.values())[0].get("type", None),
+                )
+                for i, col in enumerate(inobj.get("columns"))
+            ]
+        if "depends_on" in inobj:
+            obj.depends_on.extend(inobj["depends_on"])
         obj.fix_privileges()
         obj.set_oldname(inobj)
         return obj
@@ -77,7 +87,7 @@ class View(DbClass):
 
     @property
     def allprivs(self):
-        return 'arwdDxt'
+        return "arwdDxt"
 
     def to_map(self, db, opts):
         """Convert a view to a YAML-suitable format
@@ -85,19 +95,21 @@ class View(DbClass):
         :param opts: options to include/exclude tables, etc.
         :return: dictionary
         """
-        if hasattr(opts, 'excl_tables') and opts.excl_tables \
-                and self.name in opts.excl_tables:
+        if (
+            hasattr(opts, "excl_tables")
+            and opts.excl_tables
+            and self.name in opts.excl_tables
+        ):
             return None
         dct = super(View, self).to_map(db, opts.no_owner, opts.no_privs)
-        dct['columns'] = [col.to_map(db, opts.no_privs)
-                          for col in self.columns]
-        if 'dependent_funcs' in dct:
-             dct.pop('dependent_funcs')
+        dct["columns"] = [col.to_map(db, opts.no_privs) for col in self.columns]
+        if "dependent_funcs" in dct:
+            dct.pop("dependent_funcs")
         if len(self.triggers) > 0:
             for key in list(self.triggers.values()):
-                dct['triggers'].update(self.triggers[key.name].to_map(db))
+                dct["triggers"].update(self.triggers[key.name].to_map(db))
         else:
-            dct.pop('triggers')
+            dct.pop("triggers")
         return dct
 
     @commentable
@@ -109,10 +121,12 @@ class View(DbClass):
         :return: SQL statements
         """
         defn = newdefn or self.definition
-        if defn[-1:] == ';':
+        if defn[-1:] == ";":
             defn = defn[:-1]
-        return ["CREATE%s VIEW %s AS\n   %s" % (
-                newdefn and " OR REPLACE" or '', self.qualname(), defn)]
+        return [
+            "CREATE%s VIEW %s AS\n   %s"
+            % (newdefn and " OR REPLACE" or "", self.qualname(), defn)
+        ]
 
     def alter(self, inview, dbversion=None):
         """Generate SQL to transform an existing view
@@ -127,11 +141,13 @@ class View(DbClass):
         stmts = []
         for col in self.columns:
             if col.name != inview.columns[col.number - 1].name:
-                raise KeyError("Cannot change name of view column '%s'"
-                                % col.name)
+                raise KeyError(
+                    "Cannot change name of view column '%s'" % col.name
+                )
             if col.type != inview.columns[col.number - 1].type:
-                raise TypeError("Cannot change datatype of view column '%s'"
-                                % col.name)
+                raise TypeError(
+                    "Cannot change datatype of view column '%s'" % col.name
+                )
         if self.definition != inview.definition:
             stmts.append(self.create(dbversion, inview.definition))
         stmts.append(super(View, self).alter(inview))
@@ -143,9 +159,18 @@ class MaterializedView(View):
 
     A materialized view is identified by its schema name and view name.
     """
-    def __init__(self, name, schema, description, owner, privileges,
-                 definition, with_data=False,
-                 oid=None):
+
+    def __init__(
+        self,
+        name,
+        schema,
+        description,
+        owner,
+        privileges,
+        definition,
+        with_data=False,
+        oid=None,
+    ):
         """Initialize the materialized view
 
         :param name-privileges: see DbClass.__init__ params
@@ -153,7 +178,8 @@ class MaterializedView(View):
         :param with_data: is view populated (from relispopulated)
         """
         super(MaterializedView, self).__init__(
-            name, schema, description, owner, privileges, definition)
+            name, schema, description, owner, privileges, definition
+        )
         self.with_data = with_data
         self.indexes = {}
         self.oid = oid
@@ -182,14 +208,24 @@ class MaterializedView(View):
         :return: materialized view instance
         """
         obj = MaterializedView(
-            name, schema.name, inobj.pop('description', None),
-            inobj.pop('owner', None), inobj.pop('privileges', []),
-            inobj.pop('definition', None))
+            name,
+            schema.name,
+            inobj.pop("description", None),
+            inobj.pop("owner", None),
+            inobj.pop("privileges", []),
+            inobj.pop("definition", None),
+        )
         if "columns" in inobj:
-            obj.columns = [Column(list(col.keys())[0], schema.name, name,
-                                  i + 1,
-                                  list(col.values())[0].get("type", None))
-                           for i, col in enumerate(inobj.get("columns"))]
+            obj.columns = [
+                Column(
+                    list(col.keys())[0],
+                    schema.name,
+                    name,
+                    i + 1,
+                    list(col.values())[0].get("type", None),
+                )
+                for i, col in enumerate(inobj.get("columns"))
+            ]
         obj.fix_privileges()
         obj.set_oldname(inobj)
         return obj
@@ -204,15 +240,18 @@ class MaterializedView(View):
         :param opts: options to include/exclude tables, etc.
         :return: dictionary
         """
-        if hasattr(opts, 'excl_tables') and opts.excl_tables \
-                and self.name in opts.excl_tables:
+        if (
+            hasattr(opts, "excl_tables")
+            and opts.excl_tables
+            and self.name in opts.excl_tables
+        ):
             return None
         mvw = super(MaterializedView, self).to_map(db, opts)
         if len(self.indexes) > 0:
             for k in list(self.indexes.values()):
-                mvw['indexes'].update(self.indexes[k.name].to_map(db))
+                mvw["indexes"].update(self.indexes[k.name].to_map(db))
         else:
-            mvw.pop('indexes')
+            mvw.pop("indexes")
         return mvw
 
     @commentable
@@ -224,7 +263,8 @@ class MaterializedView(View):
         :return: SQL statements
         """
         defn = newdefn or self.definition
-        if defn[-1:] == ';':
+        if defn[-1:] == ";":
             defn = defn[:-1]
-        return ["CREATE %s %s AS\n   %s" % (
-                self.objtype, self.qualname(), defn)]
+        return [
+            "CREATE %s %s AS\n   %s" % (self.objtype, self.qualname(), defn)
+        ]

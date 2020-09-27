@@ -15,12 +15,11 @@ from . import commentable, ownable, split_schema_obj
 class TSConfiguration(DbSchemaObject):
     """A text search configuration definition"""
 
-    keylist = ['schema', 'name']
+    keylist = ["schema", "name"]
     single_extern_file = True
-    catalog = 'pg_ts_config'
+    catalog = "pg_ts_config"
 
-    def __init__(self, name, schema, description, owner, parser,
-                 oid=None):
+    def __init__(self, name, schema, description, owner, parser, oid=None):
         """Initialize the configuration
 
         :param name: configuration name (from cfgname)
@@ -58,8 +57,12 @@ class TSConfiguration(DbSchemaObject):
         :return: configuration instance
         """
         obj = TSConfiguration(
-            name, schema.name, inobj.pop('description', None),
-            inobj.pop('owner', None), inobj.pop('parser', None))
+            name,
+            schema.name,
+            inobj.pop("description", None),
+            inobj.pop("owner", None),
+            inobj.pop("parser", None),
+        )
         obj.set_oldname(inobj)
         return obj
 
@@ -73,10 +76,10 @@ class TSConfiguration(DbSchemaObject):
         :return: dictionary
         """
         dct = super(TSConfiguration, self).to_map(db, no_owner)
-        if '.' in self.parser:
-            (sch, pars) = self.parser.split('.')
+        if "." in self.parser:
+            (sch, pars) = self.parser.split(".")
             if sch == self.schema:
-                dct['parser'] = pars
+                dct["parser"] = pars
         return dct
 
     @commentable
@@ -88,8 +91,10 @@ class TSConfiguration(DbSchemaObject):
         """
         clauses = []
         clauses.append("PARSER = %s" % self.parser)
-        return ["CREATE TEXT SEARCH CONFIGURATION %s (\n    %s)" % (
-                self.qualname(), ',\n    '.join(clauses))]
+        return [
+            "CREATE TEXT SEARCH CONFIGURATION %s (\n    %s)"
+            % (self.qualname(), ",\n    ".join(clauses))
+        ]
 
     def get_implied_deps(self, db):
         deps = super(TSConfiguration, self).get_implied_deps(db)
@@ -109,23 +114,25 @@ class TSConfigurationDict(DbObjectDict):
         :param inconfigs: input YAML map defining the configurations
         """
         for key in inconfigs:
-            if not key.startswith('text search configuration '):
+            if not key.startswith("text search configuration "):
                 raise KeyError("Unrecognized object type: %s" % key)
             tsc = key[26:]
             inobj = inconfigs[key]
             self[(schema.name, tsc)] = TSConfiguration.from_map(
-                tsc, schema, inobj)
+                tsc, schema, inobj
+            )
 
 
 class TSDictionary(DbSchemaObject):
     """A text search dictionary definition"""
 
-    keylist = ['schema', 'name']
+    keylist = ["schema", "name"]
     single_extern_file = True
-    catalog = 'pg_ts_dict'
+    catalog = "pg_ts_dict"
 
-    def __init__(self, name, schema, description, owner, template, options,
-                 oid=None):
+    def __init__(
+        self, name, schema, description, owner, template, options, oid=None
+    ):
         """Initialize the dictionary
 
         :param name: dictionary name (from dictname)
@@ -163,9 +170,13 @@ class TSDictionary(DbSchemaObject):
         :return: dictionary instance
         """
         obj = TSDictionary(
-            name, schema.name, inobj.pop('description', None),
-            inobj.pop('owner', None), inobj.pop('template', None),
-            inobj.pop('options', None))
+            name,
+            schema.name,
+            inobj.pop("description", None),
+            inobj.pop("owner", None),
+            inobj.pop("template", None),
+            inobj.pop("options", None),
+        )
         obj.set_oldname(inobj)
         return obj
 
@@ -184,8 +195,10 @@ class TSDictionary(DbSchemaObject):
         clauses.append("TEMPLATE = %s" % self.template)
         if self.options is not None:
             clauses.append(self.options)
-        return ["CREATE TEXT SEARCH DICTIONARY %s (\n    %s)" % (
-                self.qualname(), ',\n    '.join(clauses))]
+        return [
+            "CREATE TEXT SEARCH DICTIONARY %s (\n    %s)"
+            % (self.qualname(), ",\n    ".join(clauses))
+        ]
 
 
 class TSDictionaryDict(DbObjectDict):
@@ -200,24 +213,32 @@ class TSDictionaryDict(DbObjectDict):
         :param indicts: input YAML map defining the dictionaries
         """
         for key in indicts:
-            if not key.startswith('text search dictionary '):
+            if not key.startswith("text search dictionary "):
                 raise KeyError("Unrecognized object type: %s" % key)
             tsd = key[23:]
             inobj = indicts[key]
-            self[(schema.name, tsd)] = TSDictionary.from_map(
-                tsd, schema, inobj)
+            self[(schema.name, tsd)] = TSDictionary.from_map(tsd, schema, inobj)
 
 
 class TSParser(DbSchemaObject):
     """A text search parser definition"""
 
-    keylist = ['schema', 'name']
+    keylist = ["schema", "name"]
     single_extern_file = True
-    catalog = 'pg_ts_parser'
+    catalog = "pg_ts_parser"
 
-    def __init__(self, name, schema, description, start, gettoken, end,
-                 headline, lextypes,
-                 oid=None):
+    def __init__(
+        self,
+        name,
+        schema,
+        description,
+        start,
+        gettoken,
+        end,
+        headline,
+        lextypes,
+        oid=None,
+    ):
         """Initialize the parser
 
         :param name: parser name (from prsname)
@@ -259,10 +280,16 @@ class TSParser(DbSchemaObject):
         :param inobj: YAML map of the parser
         :return: parser instance
         """
-        obj = TSParser(name, schema.name, inobj.pop('description', None),
-                       inobj.pop('start', None), inobj.pop('gettoken', None),
-                       inobj.pop('end', None), inobj.pop('headline', None),
-                       inobj.pop('lextypes', None))
+        obj = TSParser(
+            name,
+            schema.name,
+            inobj.pop("description", None),
+            inobj.pop("start", None),
+            inobj.pop("gettoken", None),
+            inobj.pop("end", None),
+            inobj.pop("headline", None),
+            inobj.pop("lextypes", None),
+        )
         obj.set_oldname(inobj)
         return obj
 
@@ -278,12 +305,14 @@ class TSParser(DbSchemaObject):
         :return: SQL statements
         """
         clauses = []
-        for attr in ['start', 'gettoken', 'end', 'lextypes']:
+        for attr in ["start", "gettoken", "end", "lextypes"]:
             clauses.append("%s = %s" % (attr.upper(), getattr(self, attr)))
         if self.headline is not None:
             clauses.append("HEADLINE = %s" % self.headline)
-        return ["CREATE TEXT SEARCH PARSER %s (\n    %s)" % (
-                self.qualname(), ',\n    '.join(clauses))]
+        return [
+            "CREATE TEXT SEARCH PARSER %s (\n    %s)"
+            % (self.qualname(), ",\n    ".join(clauses))
+        ]
 
 
 class TSParserDict(DbObjectDict):
@@ -298,7 +327,7 @@ class TSParserDict(DbObjectDict):
         :param inparsers: input YAML map defining the parsers
         """
         for key in inparsers:
-            if not key.startswith('text search parser '):
+            if not key.startswith("text search parser "):
                 raise KeyError("Unrecognized object type: %s" % key)
             tsp = key[19:]
             inobj = inparsers[key]
@@ -308,12 +337,11 @@ class TSParserDict(DbObjectDict):
 class TSTemplate(DbSchemaObject):
     """A text search template definition"""
 
-    keylist = ['schema', 'name']
+    keylist = ["schema", "name"]
     single_extern_file = True
-    catalog = 'pg_ts_template'
+    catalog = "pg_ts_template"
 
-    def __init__(self, name, schema, description, init, lexize,
-                 oid=None):
+    def __init__(self, name, schema, description, init, lexize, oid=None):
         """Initialize the template
 
         :param name: template name (from tmplname)
@@ -348,8 +376,13 @@ class TSTemplate(DbSchemaObject):
         :param inobj: YAML map of the template
         :return: template instance
         """
-        obj = TSTemplate(name, schema.name, inobj.pop('description', None),
-                         inobj.pop('init', None), inobj.pop('lexize', None))
+        obj = TSTemplate(
+            name,
+            schema.name,
+            inobj.pop("description", None),
+            inobj.pop("init", None),
+            inobj.pop("lexize", None),
+        )
         obj.set_oldname(inobj)
         return obj
 
@@ -367,8 +400,10 @@ class TSTemplate(DbSchemaObject):
         if self.init is not None:
             clauses.append("INIT = %s" % self.init)
         clauses.append("LEXIZE = %s" % self.lexize)
-        return ["CREATE TEXT SEARCH TEMPLATE %s (\n    %s)" % (
-                self.qualname(), ',\n    '.join(clauses))]
+        return [
+            "CREATE TEXT SEARCH TEMPLATE %s (\n    %s)"
+            % (self.qualname(), ",\n    ".join(clauses))
+        ]
 
 
 class TSTemplateDict(DbObjectDict):
@@ -383,7 +418,7 @@ class TSTemplateDict(DbObjectDict):
         :param intemplates: input YAML map defining the templates
         """
         for key in intemplates:
-            if not key.startswith('text search template '):
+            if not key.startswith("text search template "):
                 raise KeyError("Unrecognized object type: %s" % key)
             tst = key[21:]
             inobj = intemplates[key]

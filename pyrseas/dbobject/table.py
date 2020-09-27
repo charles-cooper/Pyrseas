@@ -41,8 +41,8 @@ class DbClass(DbSchemaObject):
     indexes have not been implemented as part of the `DbClass` hierarchy.
     """
 
-    keylist = ['schema', 'name']
-    catalog = 'pg_class'
+    keylist = ["schema", "name"]
+    catalog = "pg_class"
 
     def __init__(self, name, schema, description, owner, privileges):
         """Initialize the relation "class"
@@ -60,11 +60,23 @@ class DbClass(DbSchemaObject):
 class Sequence(DbClass):
     "A sequence generator definition"
 
-    def __init__(self, name, schema, description, owner, privileges,
-                 start_value=1, increment_by=1, max_value=MAX_BIGINT,
-                 min_value=1, cache_value=1, data_type='bigint',
-                 owner_table=None, owner_column=None,
-                 oid=None):
+    def __init__(
+        self,
+        name,
+        schema,
+        description,
+        owner,
+        privileges,
+        start_value=1,
+        increment_by=1,
+        max_value=MAX_BIGINT,
+        min_value=1,
+        cache_value=1,
+        data_type="bigint",
+        owner_table=None,
+        owner_column=None,
+        oid=None,
+    ):
         """Initialize the sequence
 
         :param name-privileges: see DbClass.__init__ params
@@ -77,8 +89,9 @@ class Sequence(DbClass):
         :param owner_table: owner table
         :param owner_column: owner column
         """
-        super(Sequence, self).__init__(name, schema, description, owner,
-                                       privileges)
+        super(Sequence, self).__init__(
+            name, schema, description, owner, privileges
+        )
         self.start_value = start_value
         self.increment_by = increment_by
         self.max_value = max_value
@@ -111,19 +124,27 @@ class Sequence(DbClass):
         :return: sequence instance
         """
         obj = Sequence(
-            name, schema.name, inobj.pop('description', None),
-            inobj.pop('owner', None), inobj.pop('privileges', []),
-            inobj.pop('start_value', 1), inobj.pop('increment_by', 1),
-            inobj.pop('max_value', MAX_BIGINT), inobj.pop('min_value', 1),
-            inobj.pop('cache_value', 1), inobj.pop('data_type', 'bigint'),
-            inobj.pop('owner_table', None), inobj.pop('owner_column', None))
+            name,
+            schema.name,
+            inobj.pop("description", None),
+            inobj.pop("owner", None),
+            inobj.pop("privileges", []),
+            inobj.pop("start_value", 1),
+            inobj.pop("increment_by", 1),
+            inobj.pop("max_value", MAX_BIGINT),
+            inobj.pop("min_value", 1),
+            inobj.pop("cache_value", 1),
+            inobj.pop("data_type", "bigint"),
+            inobj.pop("owner_table", None),
+            inobj.pop("owner_column", None),
+        )
         obj.fix_privileges()
         obj.set_oldname(inobj)
         return obj
 
     @property
     def allprivs(self):
-        return 'rwU'
+        return "rwU"
 
     def get_attrs(self, dbconn):
         """Get the attributes for the sequence
@@ -134,13 +155,18 @@ class Sequence(DbClass):
             query = """SELECT start_value, increment_by, max_value, min_value,
                               cache_value, 'bigint' AS data_type
                        FROM %s.%s""" % (
-                           quote_id(self.schema), quote_id(self.name))
+                quote_id(self.schema),
+                quote_id(self.name),
+            )
         else:
             query = """SELECT start_value, increment_by, max_value, min_value,
                               cache_size AS cache_value, data_type
                        FROM pg_sequences
                        WHERE schemaname = '%s'
-                       AND sequencename = '%s'""" % (self.schema, self.name)
+                       AND sequencename = '%s'""" % (
+                self.schema,
+                self.name,
+            )
         data = dbconn.fetchone(query)
 
         for key, val in list(data.items()):
@@ -156,10 +182,10 @@ class Sequence(DbClass):
             schema = sch
             tbl = obj
             quoted = '"%s".' % schema
-            if obj.startswith(schema + '.'):
-                tbl = obj[len(schema) + 1:]
+            if obj.startswith(schema + "."):
+                tbl = obj[len(schema) + 1 :]
             elif obj.startswith(quoted):
-                tbl = obj[len(quoted):]
+                tbl = obj[len(quoted) :]
             elif sch is None:
                 raise ValueError("Invalid schema.table: %s" % obj)
             if tbl[0] == '"' and tbl[-1:] == '"':
@@ -170,7 +196,9 @@ class Sequence(DbClass):
             """SELECT refobjid::regclass, refobjsubid
                FROM pg_depend
                WHERE objid = '%s'::regclass
-                 AND refclassid = 'pg_class'::regclass""" % self.identifier())
+                 AND refclassid = 'pg_class'::regclass"""
+            % self.identifier()
+        )
         if data:
             self.owner_table = split_table(data[0], self.schema)
             self.owner_column = data[1]
@@ -179,7 +207,9 @@ class Sequence(DbClass):
             """SELECT adrelid::regclass
                FROM pg_attrdef a JOIN pg_depend ON (a.oid = objid)
                WHERE refobjid = '%s'::regclass
-               AND classid = 'pg_attrdef'::regclass""" % self.qualname())
+               AND classid = 'pg_attrdef'::regclass"""
+            % self.qualname()
+        )
         if data:
             self.dependent_table = split_table(data[0], self.schema)
 
@@ -189,26 +219,34 @@ class Sequence(DbClass):
         :param opts: options to include/exclude tables, etc.
         :return: dictionary
         """
-        if hasattr(opts, 'tables') and opts.tables and \
-                (self.name not in opts.tables and
-                 self.owner_table is None or
-                 self.owner_table not in opts.tables) or (
-                     hasattr(opts, 'excl_tables') and opts.excl_tables and
-                     self.name in opts.excl_tables):
+        if (
+            hasattr(opts, "tables")
+            and opts.tables
+            and (
+                self.name not in opts.tables
+                and self.owner_table is None
+                or self.owner_table not in opts.tables
+            )
+            or (
+                hasattr(opts, "excl_tables")
+                and opts.excl_tables
+                and self.name in opts.excl_tables
+            )
+        ):
             return None
         dct = super(Sequence, self).to_map(db, opts.no_owner, opts.no_privs)
         if self.owner_table is None and self.owner_column is None:
-            dct.pop('owner_table')
-            dct.pop('owner_column')
-        dct.pop('dependent_table', None)
-        if self.data_type == 'bigint':
-            dct.pop('data_type')
+            dct.pop("owner_table")
+            dct.pop("owner_column")
+        dct.pop("dependent_table", None)
+        if self.data_type == "bigint":
+            dct.pop("data_type")
         for key, val in list(dct.items()):
-            if key == 'max_value' and val == MAX_BIGINT:
+            if key == "max_value" and val == MAX_BIGINT:
                 dct[key] = None
-            elif key == 'min_value' and val == 1:
+            elif key == "min_value" and val == 1:
                 dct[key] = None
-            elif key == 'privileges':
+            elif key == "privileges":
                 dct[key] = val
             else:
                 if PY2:
@@ -229,8 +267,13 @@ class Sequence(DbClass):
     INCREMENT BY %d
    %s
    %s
-    CACHE %d""" % (self.start_value, self.increment_by, seq_min_value(self),
-                   seq_max_value(self), self.cache_value)
+    CACHE %d""" % (
+            self.start_value,
+            self.increment_by,
+            seq_min_value(self),
+            seq_max_value(self),
+            self.cache_value,
+        )
 
     @commentable
     @grantable
@@ -242,20 +285,24 @@ class Sequence(DbClass):
         """
         mod = ""
         if dbversion >= 100000:
-            if self.data_type != 'bigint':
+            if self.data_type != "bigint":
                 mod = "\n    AS %s" % self.data_type
-            if hasattr(self, '_owner_col'):
+            if hasattr(self, "_owner_col"):
                 if self._owner_col.identity is not None:
                     return []
-        return ["CREATE SEQUENCE %s%s%s" % (self.qualname(), mod,
-                                            self._common_create_spec())]
+        return [
+            "CREATE SEQUENCE %s%s%s"
+            % (self.qualname(), mod, self._common_create_spec())
+        ]
 
     def add_inline(self):
         """Return statement to create the sequence inline as part of a
-           GENERATED AS IDENTITY clause
+        GENERATED AS IDENTITY clause
         """
-        return "SEQUENCE NAME %s%s" % (self.qualname(),
-                                       self._common_create_spec())
+        return "SEQUENCE NAME %s%s" % (
+            self.qualname(),
+            self._common_create_spec(),
+        )
 
     def add_owner(self):
         """Return statement to ALTER the sequence to indicate its owner table
@@ -263,9 +310,14 @@ class Sequence(DbClass):
         :return: SQL statement
         """
         stmts = []
-        stmts.append("ALTER SEQUENCE %s OWNED BY %s.%s" % (
-            self.qualname(), self.qualname(self.schema, self.owner_table),
-            quote_id(self.owner_column)))
+        stmts.append(
+            "ALTER SEQUENCE %s OWNED BY %s.%s"
+            % (
+                self.qualname(),
+                self.qualname(self.schema, self.owner_table),
+                quote_id(self.owner_column),
+            )
+        )
         return stmts
 
     def alter(self, inseq, no_owner=False):
@@ -300,12 +352,16 @@ class Sequence(DbClass):
             stmts.append("ALTER SEQUENCE %s" % self.qualname() + stmt)
 
         if inseq.owner_column is not None and inseq.owner_table is None:
-            raise ValueError("Sequence '%s' incomplete specification: "
-                             "owner_column but no owner_table")
+            raise ValueError(
+                "Sequence '%s' incomplete specification: "
+                "owner_column but no owner_table"
+            )
         if inseq.owner_table is not None:
             if inseq.owner_column is None:
-                raise ValueError("Sequence '%s' incomplete specification: "
-                                 "owner_table but no owner_column")
+                raise ValueError(
+                    "Sequence '%s' incomplete specification: "
+                    "owner_table but no owner_column"
+                )
             if self.owner_table is None and self.owner_column is None:
                 stmts.append(inseq.add_owner())
 
@@ -323,7 +379,7 @@ class Sequence(DbClass):
         return stmts
 
 
-PARTITIONING_STRATEGIES = {'l': 'list', 'r': 'range'}
+PARTITIONING_STRATEGIES = {"l": "list", "r": "range"}
 
 
 class Table(DbClass):
@@ -339,11 +395,23 @@ class Table(DbClass):
     inherited from the parent (partitioned) table, so they are not
     shown in an output map (or expected on input).
     """
-    def __init__(self, name, schema, description, owner, privileges,
-                 tablespace=None, unlogged=False, options=None,
-                 partition_bound_spec=None, partition_by=None,
-                 partition_cols=None, partition_exprs=None,
-                 oid=None):
+
+    def __init__(
+        self,
+        name,
+        schema,
+        description,
+        owner,
+        privileges,
+        tablespace=None,
+        unlogged=False,
+        options=None,
+        partition_bound_spec=None,
+        partition_by=None,
+        partition_cols=None,
+        partition_exprs=None,
+        oid=None,
+    ):
         """Initialize the table
 
         :param name-privileges: see DbClass.__init__ params
@@ -353,8 +421,9 @@ class Table(DbClass):
         :param partition_bound_spec: partition bound (from relpartbound)
         :param partition_by: partitioning strategy (from partstrat)
         """
-        super(Table, self).__init__(name, schema, description, owner,
-                                    privileges)
+        super(Table, self).__init__(
+            name, schema, description, owner, privileges
+        )
         self.tablespace = tablespace
         self.unlogged = unlogged
         self.options = options
@@ -376,7 +445,7 @@ class Table(DbClass):
             assert partition_by in PARTITIONING_STRATEGIES.values()
             self.partition_by = partition_by
         if partition_cols is not None and len(partition_cols) > 0:
-            self.partition_cols = [int(n) for n in partition_cols.split(' ')]
+            self.partition_cols = [int(n) for n in partition_cols.split(" ")]
         elif partition_cols is None and partition_by is None:
             self.partition_cols = partition_cols
         self.partition_exprs = partition_exprs
@@ -412,10 +481,13 @@ class Table(DbClass):
             return qry % ("NULL", "NULL", "NULL", "NULL", "", "= 'r'")
         else:
             return qry % (
-                "pg_get_expr(relpartbound, c.oid)", "partstrat", "partattrs",
+                "pg_get_expr(relpartbound, c.oid)",
+                "partstrat",
+                "partattrs",
                 "pg_get_expr(partexprs, pt.partrelid)",
                 " LEFT JOIN pg_partitioned_table pt ON c.oid = pt.partrelid",
-                "IN ('r', 'p')")
+                "IN ('r', 'p')",
+            )
 
     @staticmethod
     def inhquery():
@@ -434,27 +506,33 @@ class Table(DbClass):
         :return: table instance
         """
         obj = Table(
-            name, schema.name, inobj.pop('description', None),
-            inobj.pop('owner', None), inobj.pop('privileges', []),
-            inobj.pop('tablespace', None), inobj.pop('unlogged', False),
-            inobj.pop('options', None),
-            inobj.pop('partition_bound_spec', None),
-            inobj.pop('partition_by', None))
+            name,
+            schema.name,
+            inobj.pop("description", None),
+            inobj.pop("owner", None),
+            inobj.pop("privileges", []),
+            inobj.pop("tablespace", None),
+            inobj.pop("unlogged", False),
+            inobj.pop("options", None),
+            inobj.pop("partition_bound_spec", None),
+            inobj.pop("partition_by", None),
+        )
         if obj.partition_bound_spec is not None:
-            obj.inherits = [inobj.get('partition_of')]
+            obj.inherits = [inobj.get("partition_of")]
         obj.fix_privileges()
         obj.set_oldname(inobj)
         return obj
 
     @property
     def allprivs(self):
-        return 'arwdDxt'
+        return "arwdDxt"
 
     def _normalize_partcols(self):
         "Replace integer column numbers by column names"
         if isinstance(self.partition_cols[0], int):
-            self.partition_cols = [self.columns[k - 1].name
-                                   for k in self.partition_cols]
+            self.partition_cols = [
+                self.columns[k - 1].name for k in self.partition_cols
+            ]
 
     def column_names(self):
         """Return a list of column names in the table
@@ -470,19 +548,23 @@ class Table(DbClass):
         :param opts: options to include/exclude tables, etc.
         :return: dictionary
         """
-        if hasattr(opts, 'excl_tables') and opts.excl_tables \
-                and self.name in opts.excl_tables or len(self.columns) == 0:
+        if (
+            hasattr(opts, "excl_tables")
+            and opts.excl_tables
+            and self.name in opts.excl_tables
+            or len(self.columns) == 0
+        ):
             return None
 
         dct = super(Table, self).to_map(db, opts.no_owner, opts.no_privs)
 
-        for attr in ('tablespace', 'options', 'partition_bound_spec'):
+        for attr in ("tablespace", "options", "partition_bound_spec"):
             if dct[attr] is None:
                 dct.pop(attr)
         if self.unlogged is False:
-            dct.pop('unlogged')
+            dct.pop("unlogged")
         if len(self.inherits) == 0:
-            dct.pop('inherits')
+            dct.pop("inherits")
 
         if self.partition_bound_spec is None:
             cols = []
@@ -490,72 +572,81 @@ class Table(DbClass):
                 col = column.to_map(db, opts.no_privs)
                 if col:
                     cols.append(col)
-            dct['columns'] = cols
+            dct["columns"] = cols
         else:
-            dct.pop('columns')
+            dct.pop("columns")
             assert len(self.inherits) == 1
             dct.update(partition_of=self.inherits[0])
-            dct.pop('inherits')
+            dct.pop("inherits")
 
         if self.partition_by is not None:
             assert self.partition_cols is not None
             self._normalize_partcols()
             dct.update(partition_by={self.partition_by: self.partition_cols})
         else:
-            dct.pop('partition_by')
-        dct.pop('partition_cols')
-        dct.pop('partition_exprs')
+            dct.pop("partition_by")
+        dct.pop("partition_cols")
+        dct.pop("partition_exprs")
 
         if len(self.check_constraints) > 0:
             for k in list(self.check_constraints.values()):
-                dct['check_constraints'].update(
+                dct["check_constraints"].update(
                     self.check_constraints[k.name].to_map(
-                        db, self.column_names()))
+                        db, self.column_names()
+                    )
+                )
         else:
-            dct.pop('check_constraints')
+            dct.pop("check_constraints")
         if self.primary_key is not None:
-            dct['primary_key'] = self.primary_key.to_map(
-                db, self.column_names())
+            dct["primary_key"] = self.primary_key.to_map(
+                db, self.column_names()
+            )
         else:
-            dct.pop('primary_key')
+            dct.pop("primary_key")
         if len(self.foreign_keys) > 0:
             for k in list(self.foreign_keys.values()):
                 tbls = dbschemas[k.ref_schema].tables
                 ktable = self.foreign_keys[k.name]
-                dct['foreign_keys'].update(ktable.to_map(
-                    db, self.column_names(),
-                    tbls[ktable.ref_table].column_names()))
+                dct["foreign_keys"].update(
+                    ktable.to_map(
+                        db,
+                        self.column_names(),
+                        tbls[ktable.ref_table].column_names(),
+                    )
+                )
         else:
-            dct.pop('foreign_keys')
+            dct.pop("foreign_keys")
         if len(self.unique_constraints) > 0:
             for k in list(self.unique_constraints.values()):
-                dct['unique_constraints'].update(
+                dct["unique_constraints"].update(
                     self.unique_constraints[k.name].to_map(
-                        db, self.column_names()))
+                        db, self.column_names()
+                    )
+                )
         else:
-            dct.pop('unique_constraints')
+            dct.pop("unique_constraints")
         if len(self.indexes) > 0:
             idxs = {}
             for idx in self.indexes.values():
-                if not getattr(idx, '_for_constraint', None):
+                if not getattr(idx, "_for_constraint", None):
                     idxs.update(idx.to_map(db))
             if idxs:
                 # we may have only indexes not to dump, e.g. the pkey one
-                dct['indexes'] = idxs
+                dct["indexes"] = idxs
             else:
-                dct.pop('indexes', None)
+                dct.pop("indexes", None)
         else:
-            dct.pop('indexes')
+            dct.pop("indexes")
         if len(self.rules) > 0:
             for k in list(self.rules.values()):
-                dct['rules'].update(self.rules[k.name].to_map(db))
+                dct["rules"].update(self.rules[k.name].to_map(db))
         else:
-            dct.pop('rules')
+            dct.pop("rules")
         if len(self.triggers) > 0:
             for k in list(self.triggers.values()):
-                dct['triggers'].update(self.triggers[k.name].to_map(db))
+                dct["triggers"].update(self.triggers[k.name].to_map(db))
         else:
-            dct.pop('triggers')
+            dct.pop("triggers")
 
         return dct
 
@@ -571,31 +662,46 @@ class Table(DbClass):
             if not col.inherited:
                 cols.append("    " + col.add()[0])
             colprivs.append(col.add_privs())
-        unlogged = 'UNLOGGED ' if self.unlogged else ''
+        unlogged = "UNLOGGED " if self.unlogged else ""
 
         partbyclause = partofclause = inhclause = collist = ""
         if self.partition_by is not None:
             partbyclause = " PARTITION BY %s (%s)" % (
-                self.partition_by.upper(), ", ".join(self.partition_cols))
+                self.partition_by.upper(),
+                ", ".join(self.partition_cols),
+            )
         elif len(self.inherits) > 0:
             inhclause = " INHERITS (%s)" % ", ".join(
-                self.qualname(self.schema, t) for t in self.inherits)
+                self.qualname(self.schema, t) for t in self.inherits
+            )
         if self.partition_bound_spec is None:
             collist = "(\n%s)" % ",\n".join(cols)
         else:
             partofclause = "PARTITION OF %s FOR VALUES %s" % (
-                self.inherits[0], self.partition_bound_spec)
+                self.inherits[0],
+                self.partition_bound_spec,
+            )
             inhclause = ""
 
-        opts = ''
+        opts = ""
         if self.options is not None:
-            opts = " WITH (%s)" % ', '.join(self.options)
-        tblspc = ''
+            opts = " WITH (%s)" % ", ".join(self.options)
+        tblspc = ""
         if self.tablespace is not None:
             tblspc = " TABLESPACE %s" % self.tablespace
-        stmts.append("CREATE %sTABLE %s %s%s%s%s%s%s" % (
-            unlogged, self.qualname(), collist, partbyclause, partofclause,
-            inhclause, opts, tblspc))
+        stmts.append(
+            "CREATE %sTABLE %s %s%s%s%s%s%s"
+            % (
+                unlogged,
+                self.qualname(),
+                collist,
+                partbyclause,
+                partofclause,
+                inhclause,
+                opts,
+                tblspc,
+            )
+        )
         if self.owner is not None:
             stmts.append(self.alter_owner())
         for priv in self.privileges:
@@ -607,7 +713,7 @@ class Table(DbClass):
         for col in self.columns:
             if col.description is not None:
                 stmts.append(col.comment())
-        if hasattr(self, '_owned_seqs'):
+        if hasattr(self, "_owned_seqs"):
             for dep in self._owned_seqs:
                 stmts.append(dep.add_owner())
         self.created = True
@@ -619,8 +725,8 @@ class Table(DbClass):
         :return: SQL statement
         """
         stmts = []
-        if not hasattr(self, 'dropped') or not self.dropped:
-            if hasattr(self, '_dependent_funcs'):
+        if not hasattr(self, "dropped") or not self.dropped:
+            if hasattr(self, "_dependent_funcs"):
                 for fnc in self._dependent_funcs:
                     stmts.append(fnc.drop())
             self.dropped = True
@@ -636,8 +742,9 @@ class Table(DbClass):
         Generate ([SET|RESET storage_parameter=value) clauses from two
         lists in the form of 'key=value' strings.
         """
+
         def to_dict(optlist):
-            return dict(opt.split('=', 1) for opt in optlist)
+            return dict(opt.split("=", 1) for opt in optlist)
 
         oldopts = {}
         if self.options is not None:
@@ -653,13 +760,13 @@ class Table(DbClass):
         for key, val in list(oldopts.items()):
             if key not in newopts:
                 resetclauses.append("%s" % key)
-        clauses = ''
+        clauses = ""
         if setclauses:
-            clauses = "SET (%s)" % ', '.join(setclauses)
+            clauses = "SET (%s)" % ", ".join(setclauses)
             if resetclauses:
-                clauses += ', '
+                clauses += ", "
         if resetclauses:
-            clauses += "RESET (%s)" % ', '.join(resetclauses)
+            clauses += "RESET (%s)" % ", ".join(resetclauses)
         return clauses
 
     def alter(self, intable):
@@ -682,8 +789,8 @@ class Table(DbClass):
         base = "ALTER %s %s\n    " % (self.objtype, self.qualname())
         # check input columns
         for (num, incol) in enumerate(intable.columns):
-            if hasattr(incol, 'oldname'):
-                assert(self.columns[num].name == incol.oldname)
+            if hasattr(incol, "oldname"):
+                assert self.columns[num].name == incol.oldname
                 stmts.append(self.columns[num].rename(incol.name))
             # check existing columns
             if num < dbcols and self.columns[num].name == incol.name:
@@ -706,15 +813,16 @@ class Table(DbClass):
             newopts = intable.options
         diff_opts = self.diff_options(newopts)
         if diff_opts:
-            stmts.append("ALTER %s %s %s" % (self.objtype, self.identifier(),
-                                             diff_opts))
+            stmts.append(
+                "ALTER %s %s %s" % (self.objtype, self.identifier(), diff_opts)
+            )
         if colprivs:
             stmts.append(colprivs)
         if intable.tablespace is not None:
-            if self.tablespace is None \
-                    or self.tablespace != intable.tablespace:
-                stmts.append(base + "SET TABLESPACE %s"
-                             % quote_id(intable.tablespace))
+            if self.tablespace is None or self.tablespace != intable.tablespace:
+                stmts.append(
+                    base + "SET TABLESPACE %s" % quote_id(intable.tablespace)
+                )
         elif self.tablespace is not None:
             stmts.append(base + "SET TABLESPACE pg_default")
 
@@ -738,7 +846,7 @@ class Table(DbClass):
         incolnames = set(attr.name for attr in intable.columns)
         for attr in self.columns:
             if attr.name not in incolnames:
-                if not getattr(attr, 'inherited', False):
+                if not getattr(attr, "inherited", False):
                     stmts.append(attr.drop())
 
         return stmts
@@ -749,15 +857,18 @@ class Table(DbClass):
         :param dbconn: database connection to use
         :param dirpath: full path to the directory for the file to be created
         """
-        filepath = os.path.join(dirpath, self.extern_filename('data'))
+        filepath = os.path.join(dirpath, self.extern_filename("data"))
         if self.primary_key is not None:
-            order_by = [self.columns[col - 1].name
-                        for col in self.primary_key.columns]
+            order_by = [
+                self.columns[col - 1].name for col in self.primary_key.columns
+            ]
         else:
-            order_by = ['%d' % (n + 1) for n in range(len(self.columns))]
+            order_by = ["%d" % (n + 1) for n in range(len(self.columns))]
         dbconn.sql_copy_to(
-            "COPY (SELECT * FROM %s ORDER BY %s) TO STDOUT WITH CSV" % (
-                self.qualname(), ', '.join(order_by)), filepath)
+            "COPY (SELECT * FROM %s ORDER BY %s) TO STDOUT WITH CSV"
+            % (self.qualname(), ", ".join(order_by)),
+            filepath,
+        )
 
     def data_import(self, dirpath):
         """Generate SQL to import data into a table
@@ -765,18 +876,17 @@ class Table(DbClass):
         :param dirpath: full path for the directory for the file
         :return: list of SQL statements
         """
-        filepath = os.path.join(dirpath, self.extern_filename('data'))
+        filepath = os.path.join(dirpath, self.extern_filename("data"))
         stmts = []
-        if hasattr(self, '_referred_by'):
+        if hasattr(self, "_referred_by"):
             for constr in self._referred_by:
                 stmts.append(
                     "ALTER TABLE %s DROP CONSTRAINT %s"
                     % (constr._table.qualname(), constr.name)
                 )
         stmts.append("TRUNCATE ONLY %s" % self.qualname())
-        stmts.append(("\\copy ", self.qualname(), " from '", filepath,
-                      "' csv"))
-        if hasattr(self, '_referred_by'):
+        stmts.append(("\\copy ", self.qualname(), " from '", filepath, "' csv"))
+        if hasattr(self, "_referred_by"):
             for constr in self._referred_by:
                 stmts.append(constr.add())
         return stmts
@@ -797,11 +907,11 @@ class Table(DbClass):
                     if seq:
                         deps.add(seq)
                         if seq.owner_table is not None:
-                            if not hasattr(self, '_owned_seqs'):
+                            if not hasattr(self, "_owned_seqs"):
                                 self._owned_seqs = []
                             self._owned_seqs.append(seq)
 
-        for pname in getattr(self, 'inherits', ()):
+        for pname in getattr(self, "inherits", ()):
             parent = db.tables.find(pname, self.schema)
             assert parent is not None, "couldn't find parent table %s" % pname
             deps.add(parent)
@@ -809,7 +919,7 @@ class Table(DbClass):
         return deps
 
 
-OBJTYPES = ['table', 'sequence', 'view', 'materialized view']
+OBJTYPES = ["table", "sequence", "view", "materialized view"]
 
 
 class ClassDict(DbObjectDict):
@@ -839,6 +949,7 @@ class ClassDict(DbObjectDict):
             obj.get_attrs(self.dbconn)
             obj.get_dependent_table(self.dbconn)
         from .view import View, MaterializedView
+
         self.cls = View
         for obj in self.fetch():
             self[obj.key()] = obj
@@ -858,51 +969,54 @@ class ClassDict(DbObjectDict):
         :param newdb: collection of dictionaries defining the database
         """
         from .view import View, MaterializedView
+
         for k in inobjs:
             inobj = inobjs[k]
             objtype = None
             for typ in OBJTYPES:
                 if k.startswith(typ):
                     objtype = typ
-                    key = k[len(typ) + 1:]
+                    key = k[len(typ) + 1 :]
             if objtype is None:
                 raise KeyError("Unrecognized object type: %s" % k)
-            if objtype == 'table':
+            if objtype == "table":
                 self[(schema.name, key)] = table = Table.from_map(
-                    key, schema, inobj)
-                if inobj and 'inherits' in inobj:
-                    table.inherits = inobj.pop('inherits')
+                    key, schema, inobj
+                )
+                if inobj and "inherits" in inobj:
+                    table.inherits = inobj.pop("inherits")
                 try:
-                    newdb.columns.from_map(table, inobj['columns'])
+                    newdb.columns.from_map(table, inobj["columns"])
                 except KeyError as exc:
                     if table.partition_by is not None:
-                        exc.args = ("Table '%s' has no columns" % key, )
+                        exc.args = ("Table '%s' has no columns" % key,)
                         raise
                 newdb.constraints.from_map(table, inobj)
-                if 'indexes' in inobj:
-                    newdb.indexes.from_map(table, inobj['indexes'])
-                if 'rules' in inobj:
-                    newdb.rules.from_map(table, inobj['rules'])
-                if 'triggers' in inobj:
-                    newdb.triggers.from_map(table, inobj['triggers'])
-            elif objtype == 'sequence':
-                self[(schema.name, key)] = Sequence.from_map(
-                    key, schema, inobj)
-            elif objtype == 'view':
+                if "indexes" in inobj:
+                    newdb.indexes.from_map(table, inobj["indexes"])
+                if "rules" in inobj:
+                    newdb.rules.from_map(table, inobj["rules"])
+                if "triggers" in inobj:
+                    newdb.triggers.from_map(table, inobj["triggers"])
+            elif objtype == "sequence":
+                self[(schema.name, key)] = Sequence.from_map(key, schema, inobj)
+            elif objtype == "view":
                 self[(schema.name, key)] = view = View.from_map(
-                    key, schema, inobj)
-                if 'triggers' in inobj:
-                    newdb.triggers.from_map(view, inobj['triggers'])
-            elif objtype == 'materialized view':
+                    key, schema, inobj
+                )
+                if "triggers" in inobj:
+                    newdb.triggers.from_map(view, inobj["triggers"])
+            elif objtype == "materialized view":
                 self[(schema.name, key)] = mview = MaterializedView.from_map(
-                    key, schema, inobj)
-                if 'indexes' in inobj:
-                    newdb.indexes.from_map(mview, inobj['indexes'])
+                    key, schema, inobj
+                )
+                if "indexes" in inobj:
+                    newdb.indexes.from_map(mview, inobj["indexes"])
             else:
                 raise KeyError("Unrecognized object type: %s" % k)
             obj = self[(schema.name, key)]
-            if 'depends_on' in inobj:
-                obj.depends_on.extend(inobj['depends_on'])
+            if "depends_on" in inobj:
+                obj.depends_on.extend(inobj["depends_on"])
 
     def find(self, obj, schema=None):
         """Find a table given its name.
@@ -912,7 +1026,7 @@ class ClassDict(DbObjectDict):
         Return None if not found.
         """
         sch, name = split_schema_obj(obj, schema)
-        name = name.rstrip('[]')
+        name = name.rstrip("[]")
         return self.get((sch, name))
 
     def link_refs(self, dbcolumns, dbconstrs, dbindexes, dbrules, dbtriggers):
@@ -934,14 +1048,16 @@ class ClassDict(DbObjectDict):
         seqs = [self[t] for t in self if isinstance(self[t], Sequence)]
         for (sch, tbl) in dbcolumns:
             if (sch, tbl) in self:
-                #assert isinstance(self[(sch, tbl)], Table)
+                # assert isinstance(self[(sch, tbl)], Table)
                 self[(sch, tbl)].columns = dbcolumns[(sch, tbl)]
                 for col in dbcolumns[(sch, tbl)]:
                     col._table = self[(sch, tbl)]
                     if col.identity is not None:
                         for seq in seqs:
-                            if col.table == seq.owner_table and \
-                               col.name == seq.owner_column:
+                            if (
+                                col.table == seq.owner_table
+                                and col.name == seq.owner_column
+                            ):
                                 col._owner_seq = seq
                                 seq._owner_col = col
 
@@ -950,8 +1066,9 @@ class ClassDict(DbObjectDict):
             table = self[(sch, tbl)]
             if isinstance(table, Sequence) and table.owner_table is not None:
                 if isinstance(table.owner_column, int):
-                    table.owner_column = self[(sch, table.owner_table)]. \
-                        column_names()[table.owner_column - 1]
+                    table.owner_column = self[
+                        (sch, table.owner_table)
+                    ].column_names()[table.owner_column - 1]
 
         for (sch, tbl, cns) in dbconstrs:
             constr = dbconstrs[(sch, tbl, cns)]
@@ -965,11 +1082,10 @@ class ClassDict(DbObjectDict):
                 table.primary_key = constr
             elif isinstance(constr, ForeignKey):
                 # link referenced and referrer
-                constr._references = self[(
-                    constr.ref_schema, constr.ref_table)]
-                self[
-                    (constr.ref_schema, constr.ref_table)
-                ]._referred_by.append(constr)
+                constr._references = self[(constr.ref_schema, constr.ref_table)]
+                self[(constr.ref_schema, constr.ref_table)]._referred_by.append(
+                    constr
+                )
                 table.foreign_keys.update({cns: constr})
             elif isinstance(constr, UniqueConstraint):
                 table.unique_constraints.update({cns: constr})
@@ -982,10 +1098,10 @@ class ClassDict(DbObjectDict):
             objdict.update({objkey: targdict[(schema, tbl, objkey)]})
 
         for (sch, tbl, idx) in dbindexes:
-            link_one(dbindexes, sch, tbl, idx, 'indexes')
+            link_one(dbindexes, sch, tbl, idx, "indexes")
         for (sch, tbl, rul) in dbrules:
-            link_one(dbrules, sch, tbl, rul, 'rules')
+            link_one(dbrules, sch, tbl, rul, "rules")
             dbrules[(sch, tbl, rul)]._table = self[(sch, tbl)]
         for (sch, tbl, trg) in dbtriggers:
-            link_one(dbtriggers, sch, tbl, trg, 'triggers')
+            link_one(dbtriggers, sch, tbl, trg, "triggers")
             dbtriggers[(sch, tbl, trg)]._table = self[(sch, tbl)]

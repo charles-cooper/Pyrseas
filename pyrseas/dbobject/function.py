@@ -12,8 +12,8 @@ from pyrseas.yamlutil import MultiLineStr
 from . import DbObjectDict, DbSchemaObject
 from . import commentable, ownable, grantable, split_schema_obj
 
-VOLATILITY_TYPES = {'i': 'immutable', 's': 'stable', 'v': 'volatile'}
-PARALLEL_SAFETY = {'r': 'restricted', 's': 'safe', 'u': 'unsafe'}
+VOLATILITY_TYPES = {"i": "immutable", "s": "stable", "v": "volatile"}
+PARALLEL_SAFETY = {"r": "restricted", "s": "safe", "u": "unsafe"}
 
 
 def split_schema_func(schema, func):
@@ -45,15 +45,14 @@ def join_schema_func(func):
 class Proc(DbSchemaObject):
     """A procedure such as a FUNCTION or an AGGREGATE"""
 
-    keylist = ['schema', 'name', 'arguments']
-    catalog = 'pg_proc'
+    keylist = ["schema", "name", "arguments"]
+    catalog = "pg_proc"
 
     @property
     def allprivs(self):
-        return 'X'
+        return "X"
 
-    def __init__(self, name, schema, description, owner, privileges,
-                 arguments):
+    def __init__(self, name, schema, description, owner, privileges, arguments):
         """Initialize the procedure
 
         :param name: function name (from proname)
@@ -73,7 +72,7 @@ class Proc(DbSchemaObject):
 
         :return: string
         """
-        return '%s %s(%s)' % (self.objtype.lower(), self.name, self.arguments)
+        return "%s %s(%s)" % (self.objtype.lower(), self.name, self.arguments)
 
     def identifier(self):
         """Return a full identifier for a function object
@@ -87,14 +86,14 @@ class Proc(DbSchemaObject):
         deps = super(Proc, self).get_implied_deps(db)
 
         # Add back the language
-        if isinstance(self, Function) and getattr(self, 'language', None):
+        if isinstance(self, Function) and getattr(self, "language", None):
             lang = db.languages.get(self.language)
             if lang:
                 deps.add(lang)
 
         # Add back the types
         if self.arguments:
-            for arg in self.arguments.split(', '):
+            for arg in self.arguments.split(", "):
                 arg = db.find_type(arg.split()[-1])
                 if arg is not None:
                     deps.add(arg)
@@ -105,11 +104,28 @@ class Proc(DbSchemaObject):
 class Function(Proc):
     """A procedural language function"""
 
-    def __init__(self, name, schema, description, owner, privileges,
-                 arguments, language, returns, source, obj_file=None,
-                 configuration=None, volatility=None, leakproof=False,
-                 strict=False, security_definer=False, cost=0, rows=0,
-                 allargs=None, oid=None):
+    def __init__(
+        self,
+        name,
+        schema,
+        description,
+        owner,
+        privileges,
+        arguments,
+        language,
+        returns,
+        source,
+        obj_file=None,
+        configuration=None,
+        volatility=None,
+        leakproof=False,
+        strict=False,
+        security_definer=False,
+        cost=0,
+        rows=0,
+        allargs=None,
+        oid=None,
+    ):
         """Initialize the function
 
         :param name-arguments: see Proc.__init__ params
@@ -128,19 +144,20 @@ class Function(Proc):
                pg_get_function_arguments)
         """
         super(Function, self).__init__(
-            name, schema, description, owner, privileges, arguments)
+            name, schema, description, owner, privileges, arguments
+        )
         self.language = language
         self.returns = returns
-        if source and '\n' in source:
+        if source and "\n" in source:
             newsrc = []
-            for line in source.split('\n'):
-                if line and line[-1] in (' ', '\t'):
+            for line in source.split("\n"):
+                if line and line[-1] in (" ", "\t"):
                     line = line.rstrip()
                 newsrc.append(line)
-            source = '\n'.join(newsrc)
+            source = "\n".join(newsrc)
         if PY2:
             if source is not None:
-                self.source = source.encode('utf_8').decode('utf_8')
+                self.source = source.encode("utf_8").decode("utf_8")
             else:
                 self.source = None
         else:
@@ -151,7 +168,7 @@ class Function(Proc):
         if volatility is not None:
             self.volatility = volatility[:1].lower()
         else:
-            self.volatility = 'v'
+            self.volatility = "v"
         assert self.volatility in VOLATILITY_TYPES.keys()
         self.leakproof = leakproof
         self.strict = strict
@@ -199,23 +216,33 @@ class Function(Proc):
         :param inobj: YAML map of the function
         :return: function instance
         """
-        src = inobj.get('source', None)
-        objfile = inobj.get('obj_file', None)
+        src = inobj.get("source", None)
+        objfile = inobj.get("obj_file", None)
         if (src and objfile) or not (src or objfile):
-            raise ValueError("Function '%s': either source or obj_file must "
-                             "be specified" % name)
+            raise ValueError(
+                "Function '%s': either source or obj_file must "
+                "be specified" % name
+            )
         obj = Function(
-            name, schema.name, inobj.pop('description', None),
-            inobj.pop('owner', None), inobj.pop('privileges', []),
-            arguments, inobj.pop('language', None),
-            inobj.pop('returns', None), inobj.pop('source', None),
-            inobj.pop('obj_file', None),
-            inobj.pop('configuration', None),
-            inobj.pop('volatility', None),
-            inobj.pop('leakproof', False), inobj.pop('strict', False),
-            inobj.pop('security_definer', False),
-            inobj.pop('cost', 0), inobj.pop('rows', 0),
-            inobj.pop('allargs', None))
+            name,
+            schema.name,
+            inobj.pop("description", None),
+            inobj.pop("owner", None),
+            inobj.pop("privileges", []),
+            arguments,
+            inobj.pop("language", None),
+            inobj.pop("returns", None),
+            inobj.pop("source", None),
+            inobj.pop("obj_file", None),
+            inobj.pop("configuration", None),
+            inobj.pop("volatility", None),
+            inobj.pop("leakproof", False),
+            inobj.pop("strict", False),
+            inobj.pop("security_definer", False),
+            inobj.pop("cost", 0),
+            inobj.pop("rows", 0),
+            inobj.pop("allargs", None),
+        )
         obj.fix_privileges()
         return obj
 
@@ -227,37 +254,40 @@ class Function(Proc):
         :return: dictionary
         """
         dct = super(Function, self).to_map(db, no_owner, no_privs)
-        for attr in ('leakproof', 'strict', 'security_definer'):
+        for attr in ("leakproof", "strict", "security_definer"):
             if dct[attr] is False:
                 dct.pop(attr)
-        if self.allargs is None or len(self.allargs) == 0 or \
-           self.allargs == self.arguments:
-            dct.pop('allargs')
+        if (
+            self.allargs is None
+            or len(self.allargs) == 0
+            or self.allargs == self.arguments
+        ):
+            dct.pop("allargs")
         if self.configuration is None:
-            dct.pop('configuration')
-        if self.volatility == 'v':
-            dct.pop('volatility')
+            dct.pop("configuration")
+        if self.volatility == "v":
+            dct.pop("volatility")
         else:
-            dct['volatility'] = VOLATILITY_TYPES[self.volatility]
+            dct["volatility"] = VOLATILITY_TYPES[self.volatility]
         if self.obj_file is not None:
-            dct['link_symbol'] = self.source
-            del dct['source']
+            dct["link_symbol"] = self.source
+            del dct["source"]
         else:
-            del dct['obj_file']
+            del dct["obj_file"]
         if self.cost != 0:
-            if self.language in ['c', 'internal']:
+            if self.language in ["c", "internal"]:
                 if self.cost == 1:
-                    del dct['cost']
+                    del dct["cost"]
             else:
                 if self.cost == 100:
-                    del dct['cost']
+                    del dct["cost"]
         else:
-            del dct['cost']
+            del dct["cost"]
         if self.rows != 0:
             if self.rows == 1000:
-                del dct['rows']
+                del dct["rows"]
         else:
-            del dct['rows']
+            del dct["rows"]
 
         return dct
 
@@ -272,26 +302,27 @@ class Function(Proc):
         """
         stmts = []
         if self.obj_file is not None:
-            src = "'%s', '%s'" % (self.obj_file,
-                                  hasattr(self, 'link_symbol') and
-                                  self.link_symbol or self.name)
-        elif self.language == 'internal':
+            src = "'%s', '%s'" % (
+                self.obj_file,
+                hasattr(self, "link_symbol") and self.link_symbol or self.name,
+            )
+        elif self.language == "internal":
             src = "$$%s$$" % (newsrc or self.source)
         else:
             src = "$_$%s$_$" % (newsrc or self.source)
-        volat = leakproof = strict = secdef = cost = rows = config = ''
-        if self.volatility != 'v':
-            volat = ' ' + VOLATILITY_TYPES[self.volatility].upper()
+        volat = leakproof = strict = secdef = cost = rows = config = ""
+        if self.volatility != "v":
+            volat = " " + VOLATILITY_TYPES[self.volatility].upper()
         if self.leakproof is True:
-            leakproof = ' LEAKPROOF'
+            leakproof = " LEAKPROOF"
         if self.strict:
-            strict = ' STRICT'
+            strict = " STRICT"
         if self.security_definer:
-            secdef = ' SECURITY DEFINER'
+            secdef = " SECURITY DEFINER"
         if self.configuration is not None:
-            config = ' SET %s' % self.configuration[0]
+            config = " SET %s" % self.configuration[0]
         if self.cost != 0:
-            if self.language in ['c', 'internal']:
+            if self.language in ["c", "internal"]:
                 if self.cost != 1:
                     cost = " COST %s" % self.cost
             else:
@@ -303,9 +334,9 @@ class Function(Proc):
 
         # We may have to create a shell type if we are its input or output
         # functions
-        t = getattr(self, '_defining', None)
+        t = getattr(self, "_defining", None)
         if t is not None:
-            if not hasattr(t, '_shell_created'):
+            if not hasattr(t, "_shell_created"):
                 t._shell_created = True
                 stmts.append("CREATE TYPE %s" % t.qualname())
 
@@ -314,12 +345,26 @@ class Function(Proc):
         elif self.arguments is not None:
             args = self.arguments
         else:
-            args = ''
-        stmts.append("CREATE%s FUNCTION %s(%s) RETURNS %s\n    LANGUAGE %s"
-                     "%s%s%s%s%s%s%s\n    AS %s" % (
-                         newsrc and " OR REPLACE" or '', self.qualname(),
-                         args, returns or self.returns, self.language, volat, leakproof,
-                         strict, secdef, cost, rows, config, src))
+            args = ""
+        stmts.append(
+            "CREATE%s FUNCTION %s(%s) RETURNS %s\n    LANGUAGE %s"
+            "%s%s%s%s%s%s%s\n    AS %s"
+            % (
+                newsrc and " OR REPLACE" or "",
+                self.qualname(),
+                args,
+                returns or self.returns,
+                self.language,
+                volat,
+                leakproof,
+                strict,
+                secdef,
+                cost,
+                rows,
+                config,
+                src,
+            )
+        )
         return stmts
 
     def alter(self, infunction, dbversion=None, no_owner=False):
@@ -334,21 +379,23 @@ class Function(Proc):
         """
         stmts = []
         if self.source != infunction.source and infunction.source is not None:
-            stmts.append(self.create(
-                dbversion=dbversion,
-                returns=infunction.returns,
-                newsrc=infunction.source,
-            ))
+            stmts.append(
+                self.create(
+                    dbversion=dbversion,
+                    returns=infunction.returns,
+                    newsrc=infunction.source,
+                )
+            )
         if self.leakproof is True:
             if infunction.leakproof is True:
                 stmts.append("ALTER FUNCTION %s LEAKPROOF" % self.identifier())
             else:
-                stmts.append("ALTER FUNCTION %s NOT LEAKPROOF"
-                             % self.identifier())
+                stmts.append(
+                    "ALTER FUNCTION %s NOT LEAKPROOF" % self.identifier()
+                )
         elif infunction.leakproof is True:
             stmts.append("ALTER FUNCTION %s LEAKPROOF" % self.qualname())
-        stmts.append(super(Function, self).alter(infunction,
-                                                 no_owner=no_owner))
+        stmts.append(super(Function, self).alter(infunction, no_owner=no_owner))
         return stmts
 
     def get_implied_deps(self, db):
@@ -375,7 +422,7 @@ class Function(Proc):
         # because there is a loop here.
         for dep in list(deps):
             if isinstance(dep, DbType):
-                for attr in ('input', 'output', 'send', 'receive'):
+                for attr in ("input", "output", "send", "receive"):
                     fname = getattr(dep, attr, None)
                     if isinstance(fname, tuple):
                         fname = "%s.%s" % fname
@@ -383,7 +430,7 @@ class Function(Proc):
                         fname = "%s.%s" % (self.schema, fname)
                     if fname and fname == self.qualname():
                         deps.remove(dep)
-                        self._defining = dep    # we may need a shell for this
+                        self._defining = dep  # we may need a shell for this
                         break
 
         return deps
@@ -395,26 +442,47 @@ class Function(Proc):
         """
         # If the function defines a type it will be dropped by the CASCADE
         # on the type.
-        if getattr(self, '_defining', None):
+        if getattr(self, "_defining", None):
             return []
         else:
             return super(Function, self).drop()
 
 
-AGGREGATE_KINDS = {'n': 'normal', 'o': 'ordered', 'h': 'hypothetical'}
+AGGREGATE_KINDS = {"n": "normal", "o": "ordered", "h": "hypothetical"}
 
 
 class Aggregate(Proc):
     """An aggregate function"""
 
-    def __init__(self, name, schema, description, owner, privileges,
-                 arguments, sfunc, stype, sspace=0, finalfunc=None,
-                 finalfunc_extra=False, initcond=None, sortop=None,
-                 msfunc=None, minvfunc=None, mstype=None, msspace=0,
-                 mfinalfunc=None, mfinalfunc_extra=False, minitcond=None,
-                 kind='normal', combinefunc=None, serialfunc=None,
-                 deserialfunc=None, parallel='unsafe',
-                 oid=None):
+    def __init__(
+        self,
+        name,
+        schema,
+        description,
+        owner,
+        privileges,
+        arguments,
+        sfunc,
+        stype,
+        sspace=0,
+        finalfunc=None,
+        finalfunc_extra=False,
+        initcond=None,
+        sortop=None,
+        msfunc=None,
+        minvfunc=None,
+        mstype=None,
+        msspace=0,
+        mfinalfunc=None,
+        mfinalfunc_extra=False,
+        minitcond=None,
+        kind="normal",
+        combinefunc=None,
+        serialfunc=None,
+        deserialfunc=None,
+        parallel="unsafe",
+        oid=None,
+    ):
         """Initialize the aggregate
 
         :param name-arguments: see Proc.__init__ params
@@ -439,48 +507,49 @@ class Aggregate(Proc):
         :param parallel: parallel safety indicator (from proparallel)
         """
         super(Aggregate, self).__init__(
-            name, schema, description, owner, privileges, arguments)
+            name, schema, description, owner, privileges, arguments
+        )
         self.sfunc = split_schema_obj(sfunc, self.schema)
         self.stype = self.unqualify(stype)
         self.sspace = sspace
-        if finalfunc is not None and finalfunc != '-':
+        if finalfunc is not None and finalfunc != "-":
             self.finalfunc = split_schema_obj(finalfunc, self.schema)
         else:
             self.finalfunc = None
         self.finalfunc_extra = finalfunc_extra
         self.initcond = initcond
-        self.sortop = sortop if sortop != '0' else None
-        if msfunc is not None and msfunc != '-':
+        self.sortop = sortop if sortop != "0" else None
+        if msfunc is not None and msfunc != "-":
             self.msfunc = split_schema_obj(msfunc, self.schema)
         else:
             self.msfunc = None
-        if minvfunc is not None and minvfunc != '-':
+        if minvfunc is not None and minvfunc != "-":
             self.minvfunc = split_schema_obj(minvfunc, self.schema)
         else:
             self.minvfunc = None
-        if mstype is not None and mstype != '-':
+        if mstype is not None and mstype != "-":
             self.mstype = self.unqualify(mstype)
         else:
             self.mstype = None
         self.msspace = msspace
-        if mfinalfunc is not None and mfinalfunc != '-':
+        if mfinalfunc is not None and mfinalfunc != "-":
             self.mfinalfunc = split_schema_obj(mfinalfunc, self.schema)
         else:
             self.mfinalfunc = None
         self.mfinalfunc_extra = mfinalfunc_extra
         self.minitcond = minitcond
         if kind is None:
-            self.kind = 'normal'
+            self.kind = "normal"
         elif len(kind) == 1:
             self.kind = AGGREGATE_KINDS[kind]
         else:
             self.kind = kind
         assert self.kind in AGGREGATE_KINDS.values()
-        self.combinefunc = combinefunc if combinefunc != '-' else None
-        self.serialfunc = serialfunc if serialfunc != '-' else None
-        self.deserialfunc = deserialfunc if deserialfunc != '-' else None
+        self.combinefunc = combinefunc if combinefunc != "-" else None
+        self.serialfunc = serialfunc if serialfunc != "-" else None
+        self.deserialfunc = deserialfunc if deserialfunc != "-" else None
         if parallel is None:
-            self.parallel = 'unsafe'
+            self.parallel = "unsafe"
         elif len(parallel) == 1:
             self.parallel = PARALLEL_SAFETY[parallel]
         else:
@@ -516,15 +585,22 @@ class Aggregate(Proc):
                    aggmfinalfn::regproc AS mfinalfunc,
                    aggmfinalextra AS mfinalfunc_extra,
                    aggminitval AS minitcond, aggkind AS kind"""
-        V96_COLS = V94_COLS + """,aggcombinefn AS combinefunc,
+        V96_COLS = (
+            V94_COLS
+            + """,aggcombinefn AS combinefunc,
                    aggserialfn AS serialfunc, aggdeserialfn AS deserialfunc,
                    proparallel AS parallel"""
-        cols = ('aggtransspace', 'aggfinalextra')
+        )
+        cols = ("aggtransspace", "aggfinalextra")
         if dbversion < 90400:
-            cols = ('0', 'false',
-                    """'-' AS msfunc, '-' AS minvfunc, NULL AS mstype,
+            cols = (
+                "0",
+                "false",
+                """'-' AS msfunc, '-' AS minvfunc, NULL AS mstype,
                     0 AS msspace, '-' AS mfinalfunc, false AS mfinalfunc_extra,
-                    NULL AS minitcond""", "proisagg")
+                    NULL AS minitcond""",
+                "proisagg",
+            )
         elif dbversion < 90600:
             cols += (V94_COLS, "proisagg")
         elif dbversion < 110000:
@@ -544,18 +620,32 @@ class Aggregate(Proc):
         :return: aggregate instance
         """
         obj = Aggregate(
-            name, schema.name, inobj.pop('description', None),
-            inobj.pop('owner', None), inobj.pop('privileges', []),
-            arguments, inobj.get('sfunc'), inobj.get('stype'),
-            inobj.pop('sspace', 0), inobj.pop('finalfunc', None),
-            inobj.pop('finalfunc_extra', False), inobj.pop('initcond', None),
-            inobj.pop('sortop', None), inobj.pop('msfunc', None),
-            inobj.pop('minvfunc', None), inobj.pop('mstype', None),
-            inobj.pop('msspace', 0), inobj.pop('mfinalfunc', None),
-            inobj.pop('mfinalfunc_extra', False),
-            inobj.pop('minitcond', None), inobj.pop('kind', 'normal'),
-            inobj.pop('combinefunc', None), inobj.pop('serialfunc', None),
-            inobj.pop('deseriafunc', None), inobj.pop('parallel', 'unsafe'))
+            name,
+            schema.name,
+            inobj.pop("description", None),
+            inobj.pop("owner", None),
+            inobj.pop("privileges", []),
+            arguments,
+            inobj.get("sfunc"),
+            inobj.get("stype"),
+            inobj.pop("sspace", 0),
+            inobj.pop("finalfunc", None),
+            inobj.pop("finalfunc_extra", False),
+            inobj.pop("initcond", None),
+            inobj.pop("sortop", None),
+            inobj.pop("msfunc", None),
+            inobj.pop("minvfunc", None),
+            inobj.pop("mstype", None),
+            inobj.pop("msspace", 0),
+            inobj.pop("mfinalfunc", None),
+            inobj.pop("mfinalfunc_extra", False),
+            inobj.pop("minitcond", None),
+            inobj.pop("kind", "normal"),
+            inobj.pop("combinefunc", None),
+            inobj.pop("serialfunc", None),
+            inobj.pop("deseriafunc", None),
+            inobj.pop("parallel", "unsafe"),
+        )
         obj.fix_privileges()
         return obj
 
@@ -567,27 +657,35 @@ class Aggregate(Proc):
         :return: dictionary
         """
         dct = super(Aggregate, self).to_map(db, no_owner, no_privs)
-        dct['sfunc'] = self.unqualify(join_schema_func(self.sfunc))
-        for attr in ('finalfunc', 'msfunc', 'minvfunc', 'mfinalfunc'):
+        dct["sfunc"] = self.unqualify(join_schema_func(self.sfunc))
+        for attr in ("finalfunc", "msfunc", "minvfunc", "mfinalfunc"):
             if getattr(self, attr) is None:
                 dct.pop(attr)
             else:
                 dct[attr] = self.unqualify(
-                    join_schema_func(getattr(self, attr)))
-        for attr in ('initcond', 'sortop', 'minitcond', 'mstype',
-                     'combinefunc', 'serialfunc', 'deserialfunc'):
+                    join_schema_func(getattr(self, attr))
+                )
+        for attr in (
+            "initcond",
+            "sortop",
+            "minitcond",
+            "mstype",
+            "combinefunc",
+            "serialfunc",
+            "deserialfunc",
+        ):
             if getattr(self, attr) is None:
                 dct.pop(attr)
-        for attr in ('sspace', 'msspace'):
+        for attr in ("sspace", "msspace"):
             if getattr(self, attr) == 0:
                 dct.pop(attr)
-        for attr in ('finalfunc_extra', 'mfinalfunc_extra'):
+        for attr in ("finalfunc_extra", "mfinalfunc_extra"):
             if getattr(self, attr) is False:
                 dct.pop(attr)
-        if self.kind == 'normal':
-            dct.pop('kind')
-        if self.parallel == 'unsafe':
-            dct.pop('parallel')
+        if self.kind == "normal":
+            dct.pop("kind")
+        if self.parallel == "unsafe":
+            dct.pop("parallel")
         return dct
 
     @commentable
@@ -601,8 +699,9 @@ class Aggregate(Proc):
         """
         opt_clauses = []
         if self.finalfunc is not None:
-            opt_clauses.append("FINALFUNC = %s" %
-                               join_schema_func(self.finalfunc))
+            opt_clauses.append(
+                "FINALFUNC = %s" % join_schema_func(self.finalfunc)
+            )
         if self.initcond is not None:
             opt_clauses.append("INITCOND = '%s'" % self.initcond)
         if dbversion >= 90600:
@@ -618,38 +717,47 @@ class Aggregate(Proc):
             if self.finalfunc_extra:
                 opt_clauses.append("FINALFUNC_EXTRA")
             if self.msfunc is not None:
-                opt_clauses.append("MSFUNC = %s" %
-                                   join_schema_func(self.msfunc))
+                opt_clauses.append(
+                    "MSFUNC = %s" % join_schema_func(self.msfunc)
+                )
             if self.minvfunc is not None:
-                opt_clauses.append("MINVFUNC = %s" %
-                                   join_schema_func(self.minvfunc))
+                opt_clauses.append(
+                    "MINVFUNC = %s" % join_schema_func(self.minvfunc)
+                )
             if self.mstype is not None:
                 opt_clauses.append("MSTYPE = %s" % self.mstype)
             if self.msspace > 0:
                 opt_clauses.append("MSSPACE = %d" % self.msspace)
             if self.mfinalfunc is not None:
-                opt_clauses.append("MFINALFUNC = %s" %
-                                   join_schema_func(self.mfinalfunc))
+                opt_clauses.append(
+                    "MFINALFUNC = %s" % join_schema_func(self.mfinalfunc)
+                )
             if self.mfinalfunc_extra:
                 opt_clauses.append("MFINALFUNC_EXTRA")
             if self.minitcond is not None:
                 opt_clauses.append("MINITCOND = '%s'" % self.minitcond)
-        if self.kind == 'hypothetical':
+        if self.kind == "hypothetical":
             opt_clauses.append("HYPOTHETICAL")
         if self.sortop is not None:
             clause = self.sortop
-            if not clause.startswith('OPERATOR'):
+            if not clause.startswith("OPERATOR"):
                 clause = "OPERATOR(%s)" % clause
             opt_clauses.append("SORTOP = %s" % clause)
         if dbversion >= 90600:
-            if self.parallel != 'unsafe':
+            if self.parallel != "unsafe":
                 opt_clauses.append("PARALLEL = %s" % self.parallel.upper())
-        return ["CREATE AGGREGATE %s(%s) (\n    SFUNC = %s,"
-                "\n    STYPE = %s%s%s)" % (
-                    self.qualname(), self.arguments,
-                    join_schema_func(self.sfunc), self.stype,
-                    opt_clauses and ',\n    ' or '',
-                    ',\n    '.join(opt_clauses))]
+        return [
+            "CREATE AGGREGATE %s(%s) (\n    SFUNC = %s,"
+            "\n    STYPE = %s%s%s)"
+            % (
+                self.qualname(),
+                self.arguments,
+                join_schema_func(self.sfunc),
+                self.stype,
+                opt_clauses and ",\n    " or "",
+                ",\n    ".join(opt_clauses),
+            )
+        ]
 
     def get_implied_deps(self, db):
         # List the previous dependencies
@@ -659,21 +767,24 @@ class Aggregate(Proc):
             sch, fnc = self.sfunc
         else:
             sch, fnc = self.schema, self.sfunc
-        if 'ORDER BY' in self.arguments:
-            args = self.arguments.replace(' ORDER BY', ',')
+        if "ORDER BY" in self.arguments:
+            args = self.arguments.replace(" ORDER BY", ",")
         else:
-            args = self.stype + ', ' + self.arguments
+            args = self.stype + ", " + self.arguments
         deps.add(db.functions[sch, fnc, args])
-        for fn in ('finalfunc', 'mfinalfunc'):
+        for fn in ("finalfunc", "mfinalfunc"):
             if getattr(self, fn) is not None:
                 func = getattr(self, fn)
                 if isinstance(func, tuple):
                     sch, fnc = func
                 else:
                     sch, fnc = self.schema, func
-                deps.add(db.functions[sch, fnc, self.mstype
-                                      if fn[0] == 'm' else self.stype])
-        for fn in ('msfunc', 'minvfunc'):
+                deps.add(
+                    db.functions[
+                        sch, fnc, self.mstype if fn[0] == "m" else self.stype
+                    ]
+                )
+        for fn in ("msfunc", "minvfunc"):
             if getattr(self, fn) is not None:
                 func = getattr(self, fn)
                 if isinstance(func, tuple):
@@ -706,16 +817,16 @@ class ProcDict(DbObjectDict):
         :param infuncs: YAML map defining the functions
         """
         for key in infuncs:
-            (objtype, spc, fnc) = key.partition(' ')
-            if spc != ' ' or objtype not in ['function', 'aggregate']:
+            (objtype, spc, fnc) = key.partition(" ")
+            if spc != " " or objtype not in ["function", "aggregate"]:
                 raise KeyError("Unrecognized object type: %s" % key)
-            paren = fnc.find('(')
-            if paren == -1 or fnc[-1:] != ')':
+            paren = fnc.find("(")
+            if paren == -1 or fnc[-1:] != ")":
                 raise KeyError("Invalid function signature: %s" % fnc)
-            arguments = fnc[paren + 1:-1]
+            arguments = fnc[paren + 1 : -1]
             inobj = infuncs[key]
             fnc = fnc[:paren]
-            if objtype == 'function':
+            if objtype == "function":
                 func = Function.from_map(fnc, schema, arguments, inobj)
             else:
                 func = Aggregate.from_map(fnc, schema, arguments, inobj)
@@ -730,7 +841,7 @@ class ProcDict(DbObjectDict):
         Return the function found, else None.
         """
         schema, name = split_schema_obj(func)
-        args = ', '.join(args)
+        args = ", ".join(args)
         return self.get((schema, name, args))
 
     def link_refs(self, dbtypes):

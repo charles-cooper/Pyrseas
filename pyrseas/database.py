@@ -62,7 +62,7 @@ class CatDbConnection(DbConnection):
         """Connect to the database"""
         super(CatDbConnection, self).connect()
         schs = self.fetchall("SELECT current_schemas(false)")
-        addschs = [sch for sch in schs[0][0] if sch != 'public']
+        addschs = [sch for sch in schs[0][0] if sch != "public"]
         srch_path = "pg_catalog"
         if addschs:
             srch_path += ", " + ", ".join(addschs)
@@ -171,8 +171,12 @@ class Database(object):
 
             # first return the dicts for non-schema objects, then the
             # others, each group sorted alphabetically.
-            rv.sort(key=lambda pair: (issubclass(pair[1].cls, DbSchemaObject),
-                                      pair[1].cls.__name__))
+            rv.sort(
+                key=lambda pair: (
+                    issubclass(pair[1].cls, DbSchemaObject),
+                    pair[1].cls.__name__,
+                )
+            )
 
             return rv
 
@@ -201,9 +205,10 @@ class Database(object):
 
         :param config: configuration dictionary
         """
-        db = config['database']
-        self.dbconn = CatDbConnection(db['dbname'], db['username'],
-                                      db['password'], db['host'], db['port'])
+        db = config["database"]
+        self.dbconn = CatDbConnection(
+            db["dbname"], db["username"], db["password"], db["host"], db["port"]
+        )
         self.db = None
         self.config = config
 
@@ -211,17 +216,22 @@ class Database(object):
         """Link related objects"""
         langs = []
         if self.dbconn.version >= 90100:
-            langs = [lang[0] for lang in self.dbconn.fetchall(
-                """SELECT lanname FROM pg_language l
+            langs = [
+                lang[0]
+                for lang in self.dbconn.fetchall(
+                    """SELECT lanname FROM pg_language l
                      JOIN pg_depend p ON (l.oid = p.objid)
-                    WHERE deptype = 'e' """)]
+                    WHERE deptype = 'e' """
+                )
+            ]
         db.languages.link_refs(db.functions, langs)
         copycfg = {}
-        if 'datacopy' in self.config:
-            copycfg = self.config['datacopy']
+        if "datacopy" in self.config:
+            copycfg = self.config["datacopy"]
         db.schemas.link_refs(db, copycfg)
-        db.tables.link_refs(db.columns, db.constraints, db.indexes, db.rules,
-                            db.triggers)
+        db.tables.link_refs(
+            db.columns, db.constraints, db.indexes, db.rules, db.triggers
+        )
         db.functions.link_refs(db.types)
         db.fdwrappers.link_refs(db.servers)
         db.servers.link_refs(db.usermaps)
@@ -258,8 +268,9 @@ class Database(object):
                    WHERE deptype = 'n'
                    AND NOT (objid < 16384 AND refobjid < 16384)"""
         for r in dbconn.fetchall(query):
-            alldeps[r['class_name'], r['objid']].append(
-                (r['refclass'], r['refobjid']))
+            alldeps[r["class_name"], r["objid"]].append(
+                (r["refclass"], r["refobjid"])
+            )
 
         # The dependencies across views is not in pg_depend. We have to
         # parse the rewrite rule.  "ev_class >= 16384" is to exclude
@@ -283,8 +294,9 @@ class Database(object):
                    AND coalesce(cs.nspname, ps.nspname)
                          NOT IN ('information_schema', 'pg_catalog')"""
         for r in dbconn.fetchall(query):
-            alldeps[r['class_name'], r['ev_class']].append(
-                (r['refclass'], r['refobjid']))
+            alldeps[r["class_name"], r["ev_class"]].append(
+                (r["refclass"], r["refobjid"])
+            )
 
         # Add the dependencies between a table and other objects through the
         # columns defaults
@@ -294,8 +306,9 @@ class Database(object):
                         ON classid = 'pg_attrdef'::regclass AND objid = ad.oid
                         AND deptype = 'n'"""
         for r in dbconn.fetchall(query):
-            alldeps[r['class_name'], r['adrelid']].append(
-                (r['refclassid'], r['refobjid']))
+            alldeps[r["class_name"], r["adrelid"]].append(
+                (r["refclassid"], r["refobjid"])
+            )
 
         for (stbl, soid), deps in list(alldeps.items()):
             sdict = db.dbobjdict_from_catalog(stbl)
@@ -318,11 +331,26 @@ class Database(object):
 
         :param schemas: list of schemas to keep
         """
-        for objtype in ['types', 'tables', 'constraints', 'indexes',
-                        'functions', 'operators', 'operclasses', 'operfams',
-                        'rules', 'triggers', 'conversions', 'tstempls',
-                        'tsdicts', 'tsparsers', 'tsconfigs', 'extensions',
-                        'collations', 'eventtrigs']:
+        for objtype in [
+            "types",
+            "tables",
+            "constraints",
+            "indexes",
+            "functions",
+            "operators",
+            "operclasses",
+            "operfams",
+            "rules",
+            "triggers",
+            "conversions",
+            "tstempls",
+            "tsdicts",
+            "tsparsers",
+            "tsconfigs",
+            "extensions",
+            "collations",
+            "eventtrigs",
+        ]:
             objdict = getattr(self.db, objtype)
             for obj in list(objdict.keys()):
                 # obj[0] is the schema name in all these dicts
@@ -372,19 +400,19 @@ class Database(object):
         input_ums = {}
         input_evttrigs = {}
         for key in input_map:
-            if key.startswith('schema '):
+            if key.startswith("schema "):
                 input_schemas.update({key: input_map[key]})
-            elif key.startswith('extension '):
+            elif key.startswith("extension "):
                 input_extens.update({key: input_map[key]})
-            elif key.startswith('language '):
+            elif key.startswith("language "):
                 input_langs.update({key: input_map[key]})
-            elif key.startswith('cast '):
+            elif key.startswith("cast "):
                 input_casts.update({key: input_map[key]})
-            elif key.startswith('foreign data wrapper '):
+            elif key.startswith("foreign data wrapper "):
                 input_fdws.update({key: input_map[key]})
-            elif key.startswith('user mapping for '):
+            elif key.startswith("user mapping for "):
                 input_ums.update({key: input_map[key]})
-            elif key.startswith('event trigger '):
+            elif key.startswith("event trigger "):
                 input_evttrigs.update({key: input_map[key]})
             else:
                 raise KeyError("Expected typed object, found '%s'" % key)
@@ -401,29 +429,29 @@ class Database(object):
 
         :return: dictionary
         """
-        metadata_dir = self.config['files']['metadata_path']
+        metadata_dir = self.config["files"]["metadata_path"]
         if not os.path.isdir(metadata_dir):
             sys.exit("Metadata directory '%s' doesn't exist" % metadata_dir)
 
         def load(subdir, obj):
-            with open(os.path.join(subdir, obj), 'r') as f:
+            with open(os.path.join(subdir, obj), "r") as f:
                 objmap = yaml.safe_load(f)
             return objmap if isinstance(objmap, dict) else {}
 
         inmap = {}
         for entry in os.listdir(metadata_dir):
-            if entry.endswith('.yaml'):
-                if entry.startswith('database.'):
+            if entry.endswith(".yaml"):
+                if entry.startswith("database."):
                     continue
-                if not entry.startswith('schema.'):
+                if not entry.startswith("schema."):
                     inmap.update(load(metadata_dir, entry))
             else:
                 # skip over unknown files/dirs
-                if not entry.startswith('schema.'):
+                if not entry.startswith("schema."):
                     continue
                 # read schema.xxx.yaml first
-                schmap = load(metadata_dir, entry + '.yaml')
-                assert(len(schmap) == 1)
+                schmap = load(metadata_dir, entry + ".yaml")
+                assert len(schmap) == 1
                 key = list(schmap.keys())[0]
                 inmap.update({key: {}})
                 subdir = os.path.join(metadata_dir, entry)
@@ -442,7 +470,7 @@ class Database(object):
         if not self.db:
             self.from_catalog(True)
 
-        opts = self.config['options']
+        opts = self.config["options"]
 
         def mkdir_parents(dir):
             head, tail = os.path.split(dir)
@@ -452,28 +480,29 @@ class Database(object):
                 os.mkdir(dir)
 
         if opts.multiple_files:
-            opts.metadata_dir = self.config['files']['metadata_path']
+            opts.metadata_dir = self.config["files"]["metadata_path"]
             if not os.path.exists(opts.metadata_dir):
                 mkdir_parents(opts.metadata_dir)
-            dbfilepath = os.path.join(opts.metadata_dir, 'database.%s.yaml' %
-                                      self.dbconn.dbname)
+            dbfilepath = os.path.join(
+                opts.metadata_dir, "database.%s.yaml" % self.dbconn.dbname
+            )
             if os.path.exists(dbfilepath):
-                with open(dbfilepath, 'r') as f:
+                with open(dbfilepath, "r") as f:
                     objmap = yaml.safe_load(f)
                 for obj, val in list(objmap.items()):
                     if isinstance(val, dict):
-                        dirpath = ''
+                        dirpath = ""
                         for schobj, fpath in list(val.items()):
                             filepath = os.path.join(opts.metadata_dir, fpath)
                             if os.path.exists(filepath):
                                 os.remove(filepath)
-                                if schobj == 'schema':
+                                if schobj == "schema":
                                     (dirpath, ext) = os.path.splitext(filepath)
                         if os.path.exists(dirpath):
                             os.rmdir(dirpath)
                     else:
                         filepath = os.path.join(opts.metadata_dir, val)
-                        if (os.path.exists(filepath)):
+                        if os.path.exists(filepath):
                             os.remove(filepath)
 
         dbmap = self.db.extensions.to_map(self.db, opts)
@@ -481,14 +510,14 @@ class Database(object):
         dbmap.update(self.db.casts.to_map(self.db, opts))
         dbmap.update(self.db.fdwrappers.to_map(self.db, opts))
         dbmap.update(self.db.eventtrigs.to_map(self.db, opts))
-        if 'datacopy' in self.config:
-            opts.data_dir = self.config['files']['data_path']
+        if "datacopy" in self.config:
+            opts.data_dir = self.config["files"]["data_path"]
             if not os.path.exists(opts.data_dir):
                 mkdir_parents(opts.data_dir)
         dbmap.update(self.db.schemas.to_map(self.db, opts))
 
         if opts.multiple_files:
-            with open(dbfilepath, 'w') as f:
+            with open(dbfilepath, "w") as f:
                 f.write(yamldump(dbmap))
 
         return dbmap
@@ -509,11 +538,11 @@ class Database(object):
 
         if not self.db:
             self.from_catalog()
-        opts = self.config['options']
+        opts = self.config["options"]
         if opts.schemas:
-            schlist = ['schema ' + sch for sch in opts.schemas]
+            schlist = ["schema " + sch for sch in opts.schemas]
             for sch in list(input_map.keys()):
-                if sch not in schlist and sch.startswith('schema '):
+                if sch not in schlist and sch.startswith("schema "):
                     del input_map[sch]
             self._trim_objects(opts.schemas)
 
@@ -521,12 +550,16 @@ class Database(object):
         if quote_reserved:
             fetch_reserved_words(self.dbconn)
 
-        langs = [lang[0] for lang in self.dbconn.fetchall(
-            "SELECT tmplname FROM pg_pltemplate")]
+        langs = [
+            lang[0]
+            for lang in self.dbconn.fetchall(
+                "SELECT tmplname FROM pg_pltemplate"
+            )
+        ]
         self.from_map(input_map, langs)
         if opts.revert:
             (self.db, self.ndb) = (self.ndb, self.db)
-            del self.ndb.schemas['pg_catalog']
+            del self.ndb.schemas["pg_catalog"]
             self.db.languages.dbconn = self.dbconn
 
         # First sort the objects in the new db in dependency order
@@ -552,7 +585,7 @@ class Database(object):
 
                 # Check if the object just created was renamed, in which case
                 # don't try to delete the original one
-                if getattr(new, 'oldname', None):
+                if getattr(new, "oldname", None):
                     try:
                         origname, new.name = new.name, new.oldname
                         oldkey = new.key()
@@ -579,19 +612,20 @@ class Database(object):
                 new = d.get(old.key())
                 if new is not None:
                     stmts.extend(old.alter_drop_columns(new))
-            if not getattr(old, '_nodrop', False) and old.key() not in d:
+            if not getattr(old, "_nodrop", False) and old.key() not in d:
                 stmts.extend(old.drop())
 
-        if 'datacopy' in self.config:
-            opts.data_dir = self.config['files']['data_path']
+        if "datacopy" in self.config:
+            opts.data_dir = self.config["files"]["data_path"]
             stmts.append(self.ndb.schemas.data_import(opts))
 
         stmts = [s for s in flatten(stmts)]
         funcs = False
         for s in stmts:
             if "LANGUAGE sql" in s and (
-                    s.startswith("CREATE FUNCTION ") or
-                    s.startswith("CREATE OR REPLACE FUNCTION ")):
+                s.startswith("CREATE FUNCTION ")
+                or s.startswith("CREATE OR REPLACE FUNCTION ")
+            ):
                 funcs = True
                 break
         if funcs:
@@ -639,7 +673,7 @@ class Database(object):
                     del ein[ch]
                     S.append(ch)
 
-            del eout[obj]   # remove the empty set
+            del eout[obj]  # remove the empty set
 
         assert bool(ein) == bool(eout)
         if not ein:

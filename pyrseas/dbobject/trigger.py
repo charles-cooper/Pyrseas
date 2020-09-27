@@ -11,20 +11,33 @@ from . import DbObjectDict, DbSchemaObject
 from . import quote_id, commentable, split_schema_obj
 from .function import split_schema_func, join_schema_func
 
-EVENT_TYPES = ['insert', 'delete', 'update', 'truncate']
+EVENT_TYPES = ["insert", "delete", "update", "truncate"]
 
 
 class Trigger(DbSchemaObject):
     """A procedural language trigger"""
 
-    keylist = ['schema', 'table', 'name']
-    catalog = 'pg_trigger'
+    keylist = ["schema", "table", "name"]
+    catalog = "pg_trigger"
 
-    def __init__(self, name, schema, table, description, procedure, timing,
-                 level, events, constraint=False, deferrable=False,
-                 initially_deferred=False,
-                 columns=[], condition=None, arguments='',
-                 oid=None):
+    def __init__(
+        self,
+        name,
+        schema,
+        table,
+        description,
+        procedure,
+        timing,
+        level,
+        events,
+        constraint=False,
+        deferrable=False,
+        initially_deferred=False,
+        columns=[],
+        condition=None,
+        arguments="",
+        oid=None,
+    ):
         """Initialize the trigger
 
         :param name: trigger name (from tgname)
@@ -45,25 +58,26 @@ class Trigger(DbSchemaObject):
         super(Trigger, self).__init__(name, schema, description)
         self._init_own_privs(None, [])
         self.table = table
-        if procedure[-2:] == '()':
+        if procedure[-2:] == "()":
             procedure = procedure[:-2]
-        if '.' in procedure:
+        if "." in procedure:
             self.procedure = split_schema_obj(procedure, self.schema)
         else:
             self.procedure = procedure
-        if arguments and '\\000' in arguments:
-            self.arguments = ", ".join(["'%s'" % a for a in
-                                        arguments.split('\\000')[:-1]])
+        if arguments and "\\000" in arguments:
+            self.arguments = ", ".join(
+                ["'%s'" % a for a in arguments.split("\\000")[:-1]]
+            )
         else:
             self.arguments = arguments if len(arguments) > 0 else None
         # see Postgres include/catalog/pg_trigger.h
         if isinstance(timing, int):
             if timing == (1 << 1):
-                self.timing = 'before'
+                self.timing = "before"
             elif timing == (1 << 6):
-                self.timing = 'instead of'
+                self.timing = "instead of"
             else:
-                self.timing = 'after'
+                self.timing = "after"
         else:
             self.timing = timing
         self.level = level
@@ -80,10 +94,12 @@ class Trigger(DbSchemaObject):
         self.initially_deferred = initially_deferred
         self.columns = columns
         self.condition = condition
-        if condition is not None and condition.startswith('CREATE '):
-            if 'WHEN (' in condition:
-                self.condition = condition[condition.index("WHEN (")+6:
-                                           condition.index(") EXECUTE ")]
+        if condition is not None and condition.startswith("CREATE "):
+            if "WHEN (" in condition:
+                self.condition = condition[
+                    condition.index("WHEN (")
+                    + 6 : condition.index(") EXECUTE ")
+                ]
             else:
                 self.condition = None
         self.oid = oid
@@ -126,18 +142,27 @@ class Trigger(DbSchemaObject):
         if isinstance(proc, strtypes):
             if proc[-2:] == "()":
                 proc = proc[:-2]
-            elif proc[-1:] == ')':
-                proc, args = proc[:-1].split('(')
+            elif proc[-1:] == ")":
+                proc, args = proc[:-1].split("(")
         else:  # should be a dict
             args = proc.pop("arguments", None)
             proc = proc.pop("name")
         obj = Trigger(
-            name, table.schema, table.name, inobj.pop('description', None),
-            proc, inobj.pop('timing', None), inobj.pop('level', 'statement'),
-            inobj.pop('events', []), inobj.pop('constraint', False),
-            inobj.pop('deferrable', False),
-            inobj.pop('initially_deferred', False), inobj.pop('columns', []),
-            inobj.pop('condition', None), args)
+            name,
+            table.schema,
+            table.name,
+            inobj.pop("description", None),
+            proc,
+            inobj.pop("timing", None),
+            inobj.pop("level", "statement"),
+            inobj.pop("events", []),
+            inobj.pop("constraint", False),
+            inobj.pop("deferrable", False),
+            inobj.pop("initially_deferred", False),
+            inobj.pop("columns", []),
+            inobj.pop("condition", None),
+            args,
+        )
         obj.set_oldname(inobj)
         return obj
 
@@ -160,16 +185,18 @@ class Trigger(DbSchemaObject):
         else:
             dct["procedure"] = schfunc
         dct.pop("arguments")
-        for attr in ['constraint', 'deferrable', 'initially_deferred']:
+        for attr in ["constraint", "deferrable", "initially_deferred"]:
             if dct[attr] is False:
                 del dct[attr]
         if len(self.columns) > 0:
-            dct['columns'] = [self._table.column_names()[int(k) - 1]
-                              for k in self.columns.split()]
+            dct["columns"] = [
+                self._table.column_names()[int(k) - 1]
+                for k in self.columns.split()
+            ]
         else:
-            del dct['columns']
+            del dct["columns"]
         if self.condition is None:
-            del dct['condition']
+            del dct["condition"]
         return {self.name: dct}
 
     @commentable
@@ -178,7 +205,7 @@ class Trigger(DbSchemaObject):
 
         :return: SQL statements
         """
-        constr = defer = ''
+        constr = defer = ""
         if self.constraint:
             constr = "CONSTRAINT "
             if self.deferrable:
@@ -186,12 +213,13 @@ class Trigger(DbSchemaObject):
             if self.initially_deferred:
                 defer += "INITIALLY DEFERRED"
             if defer:
-                defer = '\n    ' + defer
+                defer = "\n    " + defer
         evts = " OR ".join(self.events).upper()
-        if len(self.columns) > 0 and 'update' in self.events:
-            evts = evts.replace("UPDATE", "UPDATE OF %s" % (
-                ", ".join(self.columns)))
-        cond = ''
+        if len(self.columns) > 0 and "update" in self.events:
+            evts = evts.replace(
+                "UPDATE", "UPDATE OF %s" % (", ".join(self.columns))
+            )
+        cond = ""
         if self.condition is not None:
             cond = "\n    WHEN (%s)" % self.condition
         if isinstance(self.procedure, tuple):
@@ -202,11 +230,22 @@ class Trigger(DbSchemaObject):
             args = ""
         else:
             args = self.arguments
-        return ["CREATE %sTRIGGER %s\n    %s %s ON %s%s\n    FOR EACH %s"
-                "%s\n    EXECUTE PROCEDURE %s(%s)" % (
-                    constr, quote_id(self.name), self.timing.upper(), evts,
-                    self._table.qualname(), defer,
-                    self.level.upper(), cond, procname, args)]
+        return [
+            "CREATE %sTRIGGER %s\n    %s %s ON %s%s\n    FOR EACH %s"
+            "%s\n    EXECUTE PROCEDURE %s(%s)"
+            % (
+                constr,
+                quote_id(self.name),
+                self.timing.upper(),
+                evts,
+                self._table.qualname(),
+                defer,
+                self.level.upper(),
+                cond,
+                procname,
+                args,
+            )
+        ]
 
     def alter(self, inobj):
         """Generate SQL to transform an existing trigger
@@ -215,9 +254,13 @@ class Trigger(DbSchemaObject):
         :return: list of SQL statements
         """
         stmts = []
-        if self.procedure != inobj.procedure or \
-           self.arguments != inobj.arguments or self.events != inobj.events \
-           or self.level != inobj.level or self.timing != inobj.timing:
+        if (
+            self.procedure != inobj.procedure
+            or self.arguments != inobj.arguments
+            or self.events != inobj.events
+            or self.level != inobj.level
+            or self.timing != inobj.timing
+        ):
             stmts.append(self.drop())
             stmts.append(inobj.create())
         stmts.append(self.diff_description(inobj))
@@ -229,14 +272,14 @@ class Trigger(DbSchemaObject):
         deps.add(db.tables[self.schema, self.table])
 
         # short-circuit augment triggers
-        if hasattr(self, '_iscfg'):
+        if hasattr(self, "_iscfg"):
             return deps
 
         # the trigger procedure can have arguments, but the trigger definition
         # has always none (they are accessed through `tg_argv`).
         if isinstance(self.procedure, tuple):
             fschema, fname = self.procedure
-            deps.add(db.functions[fschema, fname, self.arguments or ''])
+            deps.add(db.functions[fschema, fname, self.arguments or ""])
 
         return deps
 
@@ -254,4 +297,5 @@ class TriggerDict(DbObjectDict):
         for trg in intriggers:
             inobj = intriggers[trg]
             self[(table.schema, table.name, trg)] = Trigger.from_map(
-                trg, table, inobj)
+                trg, table, inobj
+            )

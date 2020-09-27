@@ -13,7 +13,7 @@ from pyrseas.augment import DbAugmentDict, DbAugment
 class AugDbClass(DbAugment):
     """A table, sequence or view"""
 
-    keylist = ['schema', 'name']
+    keylist = ["schema", "name"]
 
 
 class AugTable(AugDbClass):
@@ -25,10 +25,12 @@ class AugTable(AugDbClass):
         :param augdb: the augmenter dictionaries
         """
         currtbl = augdb.current.tables[self.current.key()]
-        if hasattr(self, 'audit_columns'):
+        if hasattr(self, "audit_columns"):
             if self.audit_columns not in augdb.auditcols:
-                raise KeyError("Specification %s not in current configuration"
-                               % self.audit_columns)
+                raise KeyError(
+                    "Specification %s not in current configuration"
+                    % self.audit_columns
+                )
             augdb.auditcols[self.audit_columns].apply(currtbl, augdb)
 
 
@@ -45,21 +47,23 @@ class AugClassDict(DbAugmentDict):
         :param augdb: collection of dictionaries defining the augmentations
         """
         for k in inobjs:
-            (objtype, spc, key) = k.partition(' ')
-            if spc != ' ' or objtype not in ['table']:
+            (objtype, spc, key) = k.partition(" ")
+            if spc != " " or objtype not in ["table"]:
                 raise KeyError("Unrecognized object type: %s" % k)
-            if objtype == 'table':
+            if objtype == "table":
                 self[(schema.name, key)] = table = AugTable(
-                    schema=schema.name, name=key)
+                    schema=schema.name, name=key
+                )
                 intable = inobjs[k]
                 if not intable:
                     raise ValueError("Table '%s' has no specification" % k)
                 for attr in intable:
-                    if attr == 'audit_columns':
+                    if attr == "audit_columns":
                         setattr(table, attr, intable[attr])
                     else:
-                        raise KeyError("Unrecognized attribute '%s' for %s"
-                                       % (attr, k))
+                        raise KeyError(
+                            "Unrecognized attribute '%s' for %s" % (attr, k)
+                        )
             else:
                 raise KeyError("Unrecognized object type: %s" % k)
 
@@ -70,7 +74,8 @@ class AugClassDict(DbAugmentDict):
         """
         for (sch, tbl) in self:
             if not (sch, tbl) in tables:
-                raise KeyError("Table %s.%s not in current database" % (
-                    sch, tbl))
-            if not hasattr(self[(sch, tbl)], 'current'):
+                raise KeyError(
+                    "Table %s.%s not in current database" % (sch, tbl)
+                )
+            if not hasattr(self[(sch, tbl)], "current"):
                 self[(sch, tbl)].current = tables[(sch, tbl)]
