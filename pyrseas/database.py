@@ -326,11 +326,21 @@ class Database(object):
                     continue
                 src.depends_on.append(tgt)
 
-    def _trim_objects(self, schemas):
+    def _trim_objects(self, include_schemas, exclude_schemas):
         """Remove unwanted schema objects
 
         :param schemas: list of schemas to keep
         """
+
+        def should_keep(schemaname):
+            # there is a way without branching and just boolean ops
+            # to write this, but branches seem clearer.
+            if include_schemas and schemaname in include_schemas:
+                return True
+            if exclude_schemas and schemaname in exclude_schemas:
+                return False
+            return True
+
         for objtype in [
             "types",
             "tables",
@@ -354,10 +364,10 @@ class Database(object):
             objdict = getattr(self.db, objtype)
             for obj in list(objdict.keys()):
                 # obj[0] is the schema name in all these dicts
-                if obj[0] not in schemas:
+                if not should_keep(obj[0]):
                     del objdict[obj]
         for sch in list(self.db.schemas.keys()):
-            if sch not in schemas:
+            if not should_keep(sch):
                 del self.db.schemas[sch]
         # exclude database-wide objects
         self.db.languages = LanguageDict()
@@ -540,11 +550,18 @@ class Database(object):
             self.from_catalog()
         opts = self.config["options"]
         if opts.schemas:
-            schlist = ["schema " + sch for sch in opts.schemas]
-            for sch in list(input_map.keys()):
-                if sch not in schlist and sch.startswith("schema "):
-                    del input_map[sch]
-            self._trim_objects(opts.schemas)
+            includes = ["schema " + sch for sch in opts.schemas]
+            for dbobj in list(input_map.keys()):
+                if dbobj.startswith("schema ") and dbobj not in schlist:
+                    del input_map[dbobj]
+
+        if opts.excl_schemas:
+            excludes = ["schema " + sch for sch in opts.excl_schemas]
+            for dbobj in list(input_map.keys()):
+                if dbobj.startswith("schema ") and dbobj in excludes:
+                    del input_map[dbobj]
+
+        self._trim_objects(opts.schemas, opts.excl_schemas)
 
         # quote_reserved is only set to False by most tests
         if quote_reserved:

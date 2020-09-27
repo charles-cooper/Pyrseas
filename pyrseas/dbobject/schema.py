@@ -287,6 +287,7 @@ class SchemaDict(DbObjectDict):
         describing the database objects.
         """
         for key in inmap:
+            # sch: schemaname
             (objtype, spc, sch) = key.partition(" ")
             if spc != " " or objtype != "schema":
                 raise KeyError("Unrecognized object type: %s" % key)
@@ -403,14 +404,11 @@ class SchemaDict(DbObjectDict):
         dictionary of schemas.
         """
         schemas = {}
-        selschs = getattr(opts, "schemas", [])
+        includes = getattr(opts, "schemas", [])
+        excludes = getattr(opts, "excl_schemas", [])
         for sch in self:
-            if not selschs or sch in selschs:
-                if (
-                    hasattr(opts, "excl_schemas")
-                    and opts.excl_schemas
-                    and sch in opts.excl_schemas
-                ):
+            if not includes or sch in includes:
+                if excludes and sch in excludes:
                     continue
                 schemas.update(self[sch].to_map(db, self, opts))
 
