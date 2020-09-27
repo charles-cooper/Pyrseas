@@ -63,6 +63,15 @@ def main():
         default=[],
         help="process only named schema(s) (default all)",
     )
+    parser.add_argument(
+        "-N",
+        "--exclude-schema",
+        metavar="SCHEMA",
+        dest="excl_schemas",
+        action="append",
+        default=[],
+        help="do NOT extract the named schema(s) " "(default none)",
+    )
     cfg = parse_args(parser)
     output = cfg["files"]["output"]
     options = cfg["options"]
