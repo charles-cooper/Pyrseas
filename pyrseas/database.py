@@ -357,7 +357,8 @@ class Database(object):
             "tsdicts",
             "tsparsers",
             "tsconfigs",
-            "extensions",
+            # extensions are database-wide objects.
+            #"extensions",
             "collations",
             "eventtrigs",
         ]:
