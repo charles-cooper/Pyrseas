@@ -335,10 +335,10 @@ class Database(object):
         def should_keep(schemaname):
             # there is a way without branching and just boolean ops
             # to write this, but branches seem clearer.
-            if include_schemas and schemaname in include_schemas:
-                return True
-            if exclude_schemas and schemaname in exclude_schemas:
-                return False
+            if include_schemas:
+                return schemaname in include_schemas
+            if exclude_schemas:
+                return schemaname not in exclude_schemas
             return True
 
         for objtype in [
