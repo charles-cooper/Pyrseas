@@ -601,7 +601,7 @@ class DbSchemaObject(DbObject):
         """
         if "." in objname:
             (sch, objname) = split_schema_obj(objname, self.schema)
-            assert sch == self.schema
+            assert sch == self.schema, (objname, sch, self.schema)
             return objname
         else:
             return objname
