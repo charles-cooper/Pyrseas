@@ -552,7 +552,7 @@ class Database(object):
         if opts.schemas:
             includes = ["schema " + sch for sch in opts.schemas]
             for dbobj in list(input_map.keys()):
-                if dbobj.startswith("schema ") and dbobj not in schlist:
+                if dbobj.startswith("schema ") and dbobj not in includes:
                     del input_map[dbobj]
 
         if opts.excl_schemas:
