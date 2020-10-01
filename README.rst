@@ -10,6 +10,8 @@ YAML, to verify the schema against the same or a different database
 and to generate SQL that will modify the schema to match the YAML
 description.
 
+(This is my personal fork of pyrseas. Usage may no longer match the docs.)
+
 Features
 --------
 
