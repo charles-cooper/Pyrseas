@@ -45,7 +45,7 @@ def join_schema_func(func):
 class Proc(DbSchemaObject):
     """A procedure such as a FUNCTION or an AGGREGATE"""
 
-    keylist = ["schema", "name", "arguments"]
+    keylist = ["schema", "name", "signature"]
     catalog = "pg_proc"
 
     @property
@@ -125,6 +125,7 @@ class Function(Proc):
         rows=0,
         allargs=None,
         oid=None,
+        argtypes=None,
     ):
         """Initialize the function
 
@@ -176,6 +177,7 @@ class Function(Proc):
         self.cost = cost
         self.rows = rows
         self.oid = oid
+        self.signature = tuple(argtypes) if argtypes is not None else arguments
 
     @staticmethod
     def query(dbversion=None):
@@ -190,7 +192,11 @@ class Function(Proc):
                    probin::text AS obj_file, proconfig AS configuration,
                    prosecdef AS security_definer, procost AS cost,
                    proleakproof AS leakproof, prorows::integer AS rows,
-                   obj_description(p.oid, 'pg_proc') AS description, p.oid
+                   obj_description(p.oid, 'pg_proc') AS description, p.oid,
+                   array(
+                       select t::regtype::text
+                       from unnest(string_to_array(proargtypes::text, ' ')) n(t)
+                   ) as argtypes
             FROM pg_proc p JOIN pg_roles r ON (r.oid = proowner)
                  JOIN pg_namespace n ON (pronamespace = n.oid)
                  JOIN pg_language l ON (prolang = l.oid)
@@ -482,6 +488,7 @@ class Aggregate(Proc):
         deserialfunc=None,
         parallel="unsafe",
         oid=None,
+        argtypes=None,
     ):
         """Initialize the aggregate
 
@@ -556,6 +563,7 @@ class Aggregate(Proc):
             self.parallel = parallel
         assert self.parallel in PARALLEL_SAFETY.values()
         self.oid = oid
+        self.signature = tuple(argtypes) if argtypes is not None else arguments
 
     @staticmethod
     def query(dbversion):
@@ -568,7 +576,11 @@ class Aggregate(Proc):
                    aggtranstype::regtype AS stype, %s AS sspace,
                    aggfinalfn::regproc AS finalfunc, %s AS finalfunc_extra,
                    agginitval AS initcond, aggsortop::regoper AS sortop, %s,
-                   obj_description(p.oid, 'pg_proc') AS description, p.oid
+                   obj_description(p.oid, 'pg_proc') AS description, p.oid,
+                   array(
+                       select t::regtype::text
+                       from unnest(string_to_array(proargtypes::text, ' ')) n(t)
+                   ) as argtypes
             FROM pg_proc p JOIN pg_roles r ON (r.oid = proowner)
                  JOIN pg_namespace n ON (pronamespace = n.oid)
                  LEFT JOIN pg_aggregate a ON (p.oid = aggfnoid)
@@ -767,11 +779,8 @@ class Aggregate(Proc):
             sch, fnc = self.sfunc
         else:
             sch, fnc = self.schema, self.sfunc
-        if "ORDER BY" in self.arguments:
-            args = self.arguments.replace(" ORDER BY", ",")
-        else:
-            args = self.stype + ", " + self.arguments
-        deps.add(db.functions[sch, fnc, args])
+        sfunc_args = (self.stype,) + self.signature
+        deps.add(db.functions[sch, fnc, sfunc_args])
         for fn in ("finalfunc", "mfinalfunc"):
             if getattr(self, fn) is not None:
                 func = getattr(self, fn)
@@ -781,7 +790,7 @@ class Aggregate(Proc):
                     sch, fnc = self.schema, func
                 deps.add(
                     db.functions[
-                        sch, fnc, self.mstype if fn[0] == "m" else self.stype
+                        sch, fnc, (self.mstype if fn[0] == "m" else self.stype,)
                     ]
                 )
         for fn in ("msfunc", "minvfunc"):
@@ -791,7 +800,7 @@ class Aggregate(Proc):
                     sch, fnc = func
                 else:
                     sch, fnc = self.schema, func
-                args = self.mstype + ", " + self.arguments
+                sfunc_args = (self.mstype,) + self.signature
                 deps.add(db.functions[sch, fnc, args])
 
         return deps
