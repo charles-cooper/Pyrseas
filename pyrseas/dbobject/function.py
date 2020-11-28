@@ -177,7 +177,7 @@ class Function(Proc):
         self.cost = cost
         self.rows = rows
         self.oid = oid
-        self.signature = tuple(argtypes) if argtypes is not None else arguments
+        self.signature = tuple(argtypes) if argtypes is not None else None
 
     @staticmethod
     def query(dbversion=None):
@@ -213,7 +213,7 @@ class Function(Proc):
         return query
 
     @staticmethod
-    def from_map(name, schema, arguments, inobj):
+    def from_map(name, schema, arguments, inobj, argtypes):
         """Initialize a function instance from a YAML map
 
         :param name: function name
@@ -248,6 +248,7 @@ class Function(Proc):
             inobj.pop("cost", 0),
             inobj.pop("rows", 0),
             inobj.pop("allargs", None),
+            argtypes=argtypes,
         )
         obj.fix_privileges()
         return obj
@@ -563,7 +564,7 @@ class Aggregate(Proc):
             self.parallel = parallel
         assert self.parallel in PARALLEL_SAFETY.values()
         self.oid = oid
-        self.signature = tuple(argtypes) if argtypes is not None else arguments
+        self.signature = tuple(argtypes) if argtypes is not None else None
 
     @staticmethod
     def query(dbversion):
@@ -622,7 +623,7 @@ class Aggregate(Proc):
         return query % cols
 
     @staticmethod
-    def from_map(name, schema, arguments, inobj):
+    def from_map(name, schema, arguments, inobj, argtypes):
         """Initialize an aggregate instance from a YAML map
 
         :param name: aggregate name
@@ -657,6 +658,7 @@ class Aggregate(Proc):
             inobj.pop("serialfunc", None),
             inobj.pop("deseriafunc", None),
             inobj.pop("parallel", "unsafe"),
+            argtypes=argtypes,
         )
         obj.fix_privileges()
         return obj
@@ -833,13 +835,16 @@ class ProcDict(DbObjectDict):
             if paren == -1 or fnc[-1:] != ")":
                 raise KeyError("Invalid function signature: %s" % fnc)
             arguments = fnc[paren + 1 : -1]
+            # guess the argtypes. this is not right in a lot of cases,
+            # this is quick and dirty.
+            argtypes = tuple(x.strip() for x in arguments.split(','))
             inobj = infuncs[key]
             fnc = fnc[:paren]
             if objtype == "function":
-                func = Function.from_map(fnc, schema, arguments, inobj)
+                func = Function.from_map(fnc, schema, arguments, inobj, argtypes)
             else:
-                func = Aggregate.from_map(fnc, schema, arguments, inobj)
-            self[(schema.name, fnc, arguments)] = func
+                func = Aggregate.from_map(fnc, schema, arguments, inobj, argtypes)
+            self[func.key()] = func
 
     def find(self, func, args):
         """Return a function given its name and arguments
