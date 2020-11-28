@@ -354,10 +354,9 @@ class Function(Proc):
         else:
             args = ""
         stmts.append(
-            "CREATE%s FUNCTION %s(%s) RETURNS %s\n    LANGUAGE %s"
+            "CREATE OR REPLACE FUNCTION %s(%s) RETURNS %s\n    LANGUAGE %s"
             "%s%s%s%s%s%s%s\n    AS %s"
             % (
-                newsrc and " OR REPLACE" or "",
                 self.qualname(),
                 args,
                 returns or self.returns,
