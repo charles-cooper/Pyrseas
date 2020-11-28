@@ -565,6 +565,7 @@ class Aggregate(Proc):
         assert self.parallel in PARALLEL_SAFETY.values()
         self.oid = oid
         self.signature = tuple(argtypes) if argtypes is not None else None
+        self.privobjtype = "ROUTINE"
 
     @staticmethod
     def query(dbversion):
