@@ -78,7 +78,10 @@ class Column(DbSchemaObject):
     def query(dbversion=None):
         qry = """
             SELECT nspname AS schema, relname AS table, attname AS name,
-                   attnum AS number, format_type(atttypid, atttypmod) AS type,
+                   attnum AS number,
+                   format_type(atttypid, atttypmod) ||
+                     repeat('[]', attndims - 1)
+                     AS type,
                    attnotnull AS not_null, attinhcount > 0 AS inherited,
                    pg_get_expr(adbin, adrelid) AS default, %s AS identity,
                    attstattarget AS statistics,
