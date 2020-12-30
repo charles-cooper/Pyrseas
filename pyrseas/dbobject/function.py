@@ -156,13 +156,13 @@ class Function(Proc):
                     line = line.rstrip()
                 newsrc.append(line)
             source = "\n".join(newsrc)
-        if PY2:
-            if source is not None:
+        if source is not None:
+            if PY2:
                 self.source = source.encode("utf_8").decode("utf_8")
             else:
-                self.source = None
+                self.source = MultiLineStr(source)
         else:
-            self.source = MultiLineStr(source)
+            self.source = None
         self.obj_file = obj_file
         self.configuration = configuration
         self.allargs = allargs
