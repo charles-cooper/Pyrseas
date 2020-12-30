@@ -761,7 +761,7 @@ class Aggregate(Proc):
             if self.parallel != "unsafe":
                 opt_clauses.append("PARALLEL = %s" % self.parallel.upper())
         return [
-            "CREATE AGGREGATE %s(%s) (\n    SFUNC = %s,"
+            "CREATE OR REPLACE AGGREGATE %s(%s) (\n    SFUNC = %s,"
             "\n    STYPE = %s%s%s)"
             % (
                 self.qualname(),
