@@ -335,7 +335,7 @@ class Database(object):
         def should_keep(schemaname):
             # there is a way without branching and just boolean ops
             # to write this, but branches seem clearer.
-            if schemaname.startswith('pg_'): # is system schema
+            if schemaname.startswith("pg_"):  # is system schema
                 return False
             if include_schemas:
                 return schemaname in include_schemas

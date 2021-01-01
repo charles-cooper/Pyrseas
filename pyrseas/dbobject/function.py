@@ -837,13 +837,17 @@ class ProcDict(DbObjectDict):
             arguments = fnc[paren + 1 : -1]
             # guess the argtypes. this is not right in a lot of cases,
             # this is quick and dirty.
-            argtypes = tuple(x.strip() for x in arguments.split(','))
+            argtypes = tuple(x.strip() for x in arguments.split(","))
             inobj = infuncs[key]
             fnc = fnc[:paren]
             if objtype == "function":
-                func = Function.from_map(fnc, schema, arguments, inobj, argtypes)
+                func = Function.from_map(
+                    fnc, schema, arguments, inobj, argtypes
+                )
             else:
-                func = Aggregate.from_map(fnc, schema, arguments, inobj, argtypes)
+                func = Aggregate.from_map(
+                    fnc, schema, arguments, inobj, argtypes
+                )
             self[func.key()] = func
 
     def find(self, func, args):
