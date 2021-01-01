@@ -46,7 +46,7 @@ class View(DbClass):
             FROM pg_class c JOIN pg_roles r ON (r.oid = relowner)
                  JOIN pg_namespace ON (relnamespace = pg_namespace.oid)
             WHERE relkind = 'v'
-              AND nspname NOT LIKE 'pg_%' AND nspname != 'information_schema'
+              AND nspname NOT LIKE 'pg_%%' AND nspname != 'information_schema'
             ORDER BY nspname, relname"""
 
     @staticmethod

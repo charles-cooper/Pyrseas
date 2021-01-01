@@ -111,7 +111,7 @@ class Sequence(DbClass):
             FROM pg_class c JOIN pg_roles r ON (r.oid = relowner)
                  JOIN pg_namespace ON (relnamespace = pg_namespace.oid)
             WHERE relkind = 'S'
-              AND nspname NOT LIKE 'pg_%' AND nspname != 'information_schema'
+              AND nspname NOT LIKE 'pg_%%' AND nspname != 'information_schema'
             ORDER BY nspname, relname"""
 
     @staticmethod
@@ -475,7 +475,7 @@ class Table(DbClass):
                  JOIN pg_namespace ON (relnamespace = pg_namespace.oid)
                  LEFT JOIN pg_tablespace t ON (reltablespace = t.oid)%s
             WHERE relkind %s AND relpersistence != 't'
-              AND nspname NOT LIKE 'pg_%' AND nspname != 'information_schema'
+              AND nspname NOT LIKE 'pg_%%' AND nspname != 'information_schema'
             ORDER BY nspname, relname"""
         if dbversion < 100000:
             return qry % ("NULL", "NULL", "NULL", "NULL", "", "= 'r'")
